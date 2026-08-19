@@ -12,7 +12,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://ahmedalihafeez25_db_user:%40Sublime12345@cluster0.oe0inne.mongodb.net/crm_lead_gen?retryWrites=true&w=majority';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://ahmedalihafeez25_db_user:%40Sublime12345@cluster0.oe0inne.mongodb.net/sale?retryWrites=true&w=majority';
 
 let isConnected = false;
 
@@ -24,7 +24,7 @@ async function connectDB() {
       serverSelectionTimeoutMS: 5000
     });
     isConnected = true;
-    console.log('✅ Connected to MongoDB Atlas (crm_lead_gen)');
+    console.log('✅ Connected to MongoDB Atlas (sale database)');
   } catch (error) {
     console.error('MongoDB Atlas Connection Error:', error.message);
   }
