@@ -1,0 +1,414 @@
+<script setup lang="ts">
+import { ref } from 'vue';
+import { useCRMStore } from '@/stores/crmStore';
+import { LeadSource, PipelineStage, LeadPriority, ContactChannel } from '@/types/crm';
+import { getTodayString } from '@/utils/dateUtils';
+import {
+  UserPlus,
+  X,
+  Sparkles,
+  Building,
+  Phone,
+  MessageCircle,
+  Mail,
+  MapPin,
+  Briefcase,
+  DollarSign,
+  Calendar,
+  Clock,
+  CheckCircle2
+} from 'lucide-vue-next';
+
+const store = useCRMStore();
+
+const allSources: LeadSource[] = [
+  'Google Maps',
+  'Google Search / SERP',
+  'LinkedIn',
+  'Website',
+  'Google Ads',
+  'Meta Ads',
+  'Referral',
+  'Existing Database',
+  'Other'
+];
+
+const allStages: PipelineStage[] = [
+  'New Lead',
+  'Call Attempted',
+  'Contacted',
+  'WhatsApp Sent',
+  'Interested',
+  'Follow-Up Required',
+  'Meeting Scheduled',
+  'Proposal Sent',
+  'Negotiation',
+  'Won / Closed',
+  'Lost'
+];
+
+// Form fields
+const name = ref('');
+const companyName = ref('');
+const phoneNumber = ref('');
+const whatsAppNumber = ref('');
+const email = ref('');
+const industry = ref('Commercial Services');
+const city = ref('');
+const fullAddress = ref('');
+const serviceRequired = ref('Lead Generation & Outreach');
+const leadSource = ref<LeadSource>('Google Maps');
+const dealValue = ref<number>(5000);
+const stage = ref<PipelineStage>('New Lead');
+const priority = ref<LeadPriority>('Warm');
+const assignedSalesperson = ref(store.currentSalesperson);
+const territory = ref('North America');
+const notes = ref('');
+const nextAction = ref('First Cold Call & WhatsApp Outreach');
+const nextFollowUpDate = ref(getTodayString());
+const nextFollowUpTime = ref('14:00');
+const preferredChannel = ref<ContactChannel>('Cold Call');
+
+function syncWhatsAppWithPhone() {
+  whatsAppNumber.value = phoneNumber.value;
+}
+
+function handlePhoneBlur() {
+  if (!whatsAppNumber.value) {
+    syncWhatsAppWithPhone();
+  }
+}
+
+function handleCreateLead() {
+  if (!name.value.trim()) {
+    alert('Please enter a Lead / Contact Name');
+    return;
+  }
+
+  store.addLead({
+    name: name.value.trim(),
+    companyName: companyName.value.trim() || 'Individual',
+    phoneNumber: phoneNumber.value.trim(),
+    whatsAppNumber: whatsAppNumber.value.trim() || phoneNumber.value.trim(),
+    email: email.value.trim(),
+    industry: industry.value.trim(),
+    city: city.value.trim(),
+    fullAddress: fullAddress.value.trim(),
+    serviceRequired: serviceRequired.value.trim(),
+    leadSource: leadSource.value,
+    dealValue: Number(dealValue.value) || 0,
+    stage: stage.value,
+    priority: priority.value,
+    assignedSalesperson: assignedSalesperson.value,
+    territory: territory.value,
+    notes: notes.value.trim(),
+    nextAction: nextAction.value.trim() || 'Initial contact outreach',
+    nextFollowUpDate: nextFollowUpDate.value,
+    nextFollowUpTime: nextFollowUpTime.value,
+    preferredChannel: preferredChannel.value
+  });
+
+  // Reset
+  name.value = '';
+  companyName.value = '';
+  phoneNumber.value = '';
+  whatsAppNumber.value = '';
+  email.value = '';
+  city.value = '';
+  notes.value = '';
+  store.isCreateLeadModalOpen = false;
+}
+</script>
+
+<template>
+  <div
+    v-if="store.isCreateLeadModalOpen"
+    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200"
+  >
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-w-3xl w-full max-h-[92vh] flex flex-col overflow-hidden">
+      <!-- Header -->
+      <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-gradient-to-r from-indigo-900 via-indigo-950 to-slate-900 text-white flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center text-indigo-300">
+            <UserPlus class="w-5 h-5" />
+          </div>
+          <div>
+            <h3 class="text-sm font-bold flex items-center gap-2">
+              <span>Add New Lead</span>
+              <span class="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-indigo-500/30 text-indigo-200">5-Rule Compliant</span>
+            </h3>
+            <p class="text-xs text-slate-300">Capture complete lead generation and cold outreach parameters</p>
+          </div>
+        </div>
+
+        <button
+          @click="store.isCreateLeadModalOpen = false"
+          class="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+        >
+          <X class="w-5 h-5" />
+        </button>
+      </div>
+
+      <!-- Form Body -->
+      <form @submit.prevent="handleCreateLead" class="flex-1 overflow-y-auto p-6 space-y-5 text-xs">
+        <!-- Contact & Business Core -->
+        <div class="space-y-3">
+          <h4 class="font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 text-[11px]">
+            1. Contact & Company Information
+          </h4>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                Lead / Contact Name <span class="text-rose-500">*</span>
+              </label>
+              <input
+                v-model="name"
+                type="text"
+                placeholder="e.g. Johnathan Vance"
+                class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-indigo-500/20"
+                required
+              />
+            </div>
+
+            <div>
+              <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                Company Name
+              </label>
+              <input
+                v-model="companyName"
+                type="text"
+                placeholder="e.g. Vance Logistics LLC"
+                class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-indigo-500/20"
+              />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                Phone Number (Click-to-Call)
+              </label>
+              <input
+                v-model="phoneNumber"
+                @blur="handlePhoneBlur"
+                type="text"
+                placeholder="+1 555-019-2834"
+                class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-mono font-semibold focus:ring-2 focus:ring-indigo-500/20"
+              />
+            </div>
+
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <label class="font-bold text-slate-700 dark:text-slate-300">
+                  WhatsApp Number
+                </label>
+                <button
+                  type="button"
+                  @click="syncWhatsAppWithPhone"
+                  class="text-[10px] text-emerald-600 dark:text-emerald-400 hover:underline font-bold"
+                >
+                  Same as phone
+                </button>
+              </div>
+              <input
+                v-model="whatsAppNumber"
+                type="text"
+                placeholder="+1 555-019-2834"
+                class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-mono font-semibold focus:ring-2 focus:ring-emerald-500/20"
+              />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Email Address</label>
+              <input
+                v-model="email"
+                type="email"
+                placeholder="contact@company.com"
+                class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs"
+              />
+            </div>
+
+            <div>
+              <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Business / Industry</label>
+              <input
+                v-model="industry"
+                type="text"
+                placeholder="e.g. Healthcare, Solar, Real Estate"
+                class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold"
+              />
+            </div>
+
+            <div>
+              <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">City / Location</label>
+              <input
+                v-model="city"
+                type="text"
+                placeholder="e.g. Austin, TX"
+                class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Full Physical Address</label>
+            <input
+              v-model="fullAddress"
+              type="text"
+              placeholder="Suite 500, 100 Main St, Austin, TX 78701"
+              class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs"
+            />
+          </div>
+        </div>
+
+        <!-- Lead Source & Qualification -->
+        <div class="space-y-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+          <h4 class="font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 text-[11px]">
+            2. Source, Scope & Qualification
+          </h4>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Lead Source</label>
+              <select
+                v-model="leadSource"
+                class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold cursor-pointer"
+              >
+                <option v-for="src in allSources" :key="src" :value="src">{{ src }}</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Service Required</label>
+              <input
+                v-model="serviceRequired"
+                type="text"
+                placeholder="e.g. B2B Cold Calling & Outreach"
+                class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold"
+              />
+            </div>
+
+            <div>
+              <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Deal Value ($ USD)</label>
+              <input
+                v-model="dealValue"
+                type="number"
+                placeholder="5000"
+                class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-mono font-semibold"
+              />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Initial Priority</label>
+              <select
+                v-model="priority"
+                class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold cursor-pointer"
+              >
+                <option value="Hot">🔥 Hot</option>
+                <option value="Warm">🟡 Warm</option>
+                <option value="Cold">🔵 Cold</option>
+                <option value="Not Qualified">⚫ Not Qualified</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Initial Stage</label>
+              <select
+                v-model="stage"
+                class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold cursor-pointer"
+              >
+                <option v-for="s in allStages" :key="s" :value="s">{{ s }}</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Assigned Salesperson</label>
+              <select
+                v-model="assignedSalesperson"
+                class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold cursor-pointer"
+              >
+                <option v-for="sp in store.salespersons" :key="sp.id" :value="sp.name">{{ sp.name }}</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5-Rule Mandatory Follow-Up & Next Action -->
+        <div class="p-4 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/30 border border-indigo-200/80 dark:border-indigo-800/80 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-indigo-950 dark:text-indigo-200 flex items-center gap-1.5 text-xs">
+              <CheckCircle2 class="w-4 h-4 text-indigo-600" />
+              <span>Mandatory 5th Rule: Next Action & Follow-Up</span>
+            </span>
+            <span class="text-[10px] text-indigo-600 font-semibold">Prevents forgotten leads</span>
+          </div>
+
+          <div>
+            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Next Action Required</label>
+            <input
+              v-model="nextAction"
+              type="text"
+              placeholder="e.g. Conduct initial cold call discovery session"
+              class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold"
+              required
+            />
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Next Follow-Up Date</label>
+              <input
+                v-model="nextFollowUpDate"
+                type="date"
+                class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold"
+                required
+              />
+            </div>
+            <div>
+              <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Next Follow-Up Time</label>
+              <input
+                v-model="nextFollowUpTime"
+                type="time"
+                class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold"
+                required
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Notes -->
+        <div>
+          <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Notes / Requirements</label>
+          <textarea
+            v-model="notes"
+            rows="2"
+            placeholder="Special background notes, prospect pain points, or project specifications..."
+            class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-xs"
+          ></textarea>
+        </div>
+
+        <!-- Footer -->
+        <div class="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-3">
+          <button
+            type="button"
+            @click="store.isCreateLeadModalOpen = false"
+            class="px-4 py-2 rounded-xl font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            class="px-6 py-2 rounded-xl font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-600/30 flex items-center gap-2"
+          >
+            <UserPlus class="w-4 h-4" />
+            <span>Create & Schedule Lead</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</template>
