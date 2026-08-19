@@ -126,49 +126,48 @@ function handleDemoLogin(email: string) {
 </script>
 
 <template>
-  <div class="min-h-screen w-screen bg-slate-950 text-slate-100 flex flex-col justify-center items-center p-3 sm:p-6 overflow-y-auto selection:bg-indigo-500 selection:text-white">
-    <!-- Background glow ambient effects -->
+  <div class="min-h-screen w-full bg-slate-950 text-slate-100 overflow-y-auto overflow-x-hidden selection:bg-indigo-500 selection:text-white py-6 sm:py-10 px-3 sm:px-6 flex flex-col justify-start sm:justify-center items-center relative">
+    <!-- Ambient glowing backgrounds -->
     <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
       <div class="absolute -top-40 -left-40 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl"></div>
       <div class="absolute -bottom-40 -right-40 w-96 h-96 bg-emerald-600/20 rounded-full blur-3xl"></div>
       <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-indigo-900/10 rounded-full blur-[120px]"></div>
     </div>
 
-    <!-- Main Container Card -->
-    <div class="relative z-10 w-full max-w-5xl bg-slate-900/90 border border-slate-800 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-12 min-h-[640px]">
+    <!-- Main Card Container -->
+    <div class="relative z-10 w-full max-w-5xl bg-slate-900/95 border border-slate-800 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-12 my-auto">
       
-      <!-- LEFT HERO BRAND PANEL (5 Cols on Desktop) -->
-      <div class="lg:col-span-5 p-6 sm:p-10 bg-gradient-to-br from-indigo-950 via-slate-900 to-slate-950 border-b lg:border-b-0 lg:border-r border-slate-800 flex flex-col justify-between relative overflow-hidden">
-        <!-- Background subtle grid -->
+      <!-- LEFT BRAND HERO (On mobile: compact header, on desktop: full feature showcase) -->
+      <div class="lg:col-span-5 p-5 sm:p-8 lg:p-10 bg-gradient-to-br from-indigo-950 via-slate-900 to-slate-950 border-b lg:border-b-0 lg:border-r border-slate-800 flex flex-col justify-between relative overflow-hidden">
         <div class="absolute inset-0 bg-[radial-gradient(#4f46e5_1px,transparent_1px)] [background-size:16px_16px] opacity-10"></div>
 
-        <div class="relative z-10 space-y-6">
+        <div class="relative z-10 space-y-4 sm:space-y-6">
           <!-- Logo & Brand Header -->
           <div class="flex items-center gap-3">
-            <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-lg shadow-indigo-600/30">
-              <Sparkles class="w-6 h-6" />
+            <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-lg shadow-indigo-600/30 flex-shrink-0">
+              <Sparkles class="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div>
               <div class="flex items-center gap-2">
-                <span class="font-extrabold text-xl text-white tracking-tight">NexLeads</span>
+                <span class="font-extrabold text-lg sm:text-xl text-white tracking-tight">NexLeads</span>
                 <span class="text-[10px] uppercase font-mono font-bold px-2 py-0.5 rounded-full bg-indigo-500/30 text-indigo-300 border border-indigo-500/40">CRM PRO</span>
               </div>
-              <p class="text-xs text-slate-400 font-medium">B2B Lead Gen & Outreach Platform</p>
+              <p class="text-[11px] sm:text-xs text-slate-400 font-medium">B2B Lead Gen & Outreach Platform</p>
             </div>
           </div>
 
-          <!-- Headline & Pitch -->
-          <div class="space-y-2">
-            <h1 class="text-xl sm:text-2xl font-black text-white leading-tight">
+          <!-- Headline & Pitch (Compact on mobile, full on desktop) -->
+          <div class="space-y-1 sm:space-y-2">
+            <h1 class="text-base sm:text-xl lg:text-2xl font-black text-white leading-tight">
               High-Velocity Sales & Follow-Up Machine
             </h1>
-            <p class="text-xs text-slate-400 leading-relaxed">
+            <p class="text-xs text-slate-400 leading-relaxed hidden sm:block">
               Automate cold calling logs, instant WhatsApp touchpoints, and maintain 100% 5-Golden-Rule compliance for your sales reps.
             </p>
           </div>
 
-          <!-- Feature Highlights Checklist -->
-          <div class="space-y-3 pt-2">
+          <!-- Feature Highlights Checklist (Hidden on small mobile to keep form visible without endless scroll) -->
+          <div class="space-y-2.5 pt-1 hidden md:block">
             <div class="flex items-center gap-3 p-2.5 rounded-xl bg-slate-800/40 border border-slate-800/80">
               <div class="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center flex-shrink-0">
                 <PhoneCall class="w-4 h-4" />
@@ -201,27 +200,27 @@ function handleDemoLogin(email: string) {
           </div>
         </div>
 
-        <!-- Bottom Testimonial / Metric -->
-        <div class="relative z-10 pt-6 border-t border-slate-800/80 mt-6 flex items-center justify-between text-xs text-slate-400">
-          <div class="flex items-center gap-2">
+        <!-- Bottom status tag -->
+        <div class="relative z-10 pt-3 lg:pt-6 border-t border-slate-800/80 mt-3 lg:mt-6 flex items-center justify-between text-[11px] sm:text-xs text-slate-400">
+          <div class="flex items-center gap-1.5">
             <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span>MongoDB Atlas Connected</span>
+            <span>MongoDB Atlas Active</span>
           </div>
-          <span class="font-bold text-slate-300">v2.5 Production</span>
+          <span class="font-bold text-slate-300">v2.5 CRM</span>
         </div>
       </div>
 
       <!-- RIGHT AUTH FORM PANEL (7 Cols on Desktop) -->
-      <div class="lg:col-span-7 p-6 sm:p-10 flex flex-col justify-between bg-slate-900/50">
-        <!-- Top Auth Tabs -->
+      <div class="lg:col-span-7 p-5 sm:p-8 lg:p-10 flex flex-col justify-between bg-slate-900/50 space-y-6">
         <div>
-          <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-6">
-            <div class="flex items-center gap-2 bg-slate-950 p-1 rounded-xl border border-slate-800">
+          <!-- Top Auth Mode Tabs & Instant Demo Mode Button -->
+          <div class="flex flex-wrap items-center justify-between gap-2.5 border-b border-slate-800 pb-4 mb-5">
+            <div class="flex items-center gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800">
               <button
                 type="button"
                 @click="authMode = 'login'; localError = ''"
                 :class="[
-                  'px-4 py-1.5 rounded-lg text-xs font-bold transition-all',
+                  'px-3.5 sm:px-4 py-1.5 rounded-lg text-xs font-bold transition-all',
                   authMode === 'login'
                     ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
                     : 'text-slate-400 hover:text-white'
@@ -233,7 +232,7 @@ function handleDemoLogin(email: string) {
                 type="button"
                 @click="authMode = 'signup'; localError = ''"
                 :class="[
-                  'px-4 py-1.5 rounded-lg text-xs font-bold transition-all',
+                  'px-3.5 sm:px-4 py-1.5 rounded-lg text-xs font-bold transition-all',
                   authMode === 'signup'
                     ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
                     : 'text-slate-400 hover:text-white'
@@ -243,11 +242,11 @@ function handleDemoLogin(email: string) {
               </button>
             </div>
 
-            <!-- Quick Demo Bypass -->
+            <!-- Quick Demo Bypass Button -->
             <button
               type="button"
               @click="handleDemoLogin('ali.raza@nexleads.io')"
-              class="text-xs font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 bg-indigo-950/60 hover:bg-indigo-900/80 px-3 py-1.5 rounded-xl border border-indigo-800/80 transition-colors"
+              class="text-xs font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1.5 bg-indigo-950/70 hover:bg-indigo-900/90 px-3 py-1.5 rounded-xl border border-indigo-800 transition-all active:scale-95"
             >
               <Zap class="w-3.5 h-3.5 text-amber-400" />
               <span>Instant Demo Mode</span>
@@ -305,7 +304,7 @@ function handleDemoLogin(email: string) {
               </div>
             </div>
 
-            <div class="flex items-center justify-between text-xs pt-1">
+            <div class="flex items-center justify-between text-xs pt-0.5">
               <label class="flex items-center gap-2 cursor-pointer text-slate-400 hover:text-slate-300">
                 <input type="checkbox" v-model="rememberMe" class="rounded bg-slate-950 border-slate-800 text-indigo-600 focus:ring-indigo-500" />
                 <span>Remember me for 30 days</span>
@@ -327,20 +326,18 @@ function handleDemoLogin(email: string) {
               <span class="text-[10px] uppercase font-bold text-slate-500 tracking-wider block text-center">
                 Or 1-Click Fast Sign In as Sales Rep:
               </span>
-              <div class="grid grid-cols-2 gap-2">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <button
                   v-for="acc in demoAccounts"
                   :key="acc.email"
                   type="button"
                   @click="handleDemoLogin(acc.email)"
-                  class="p-2.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-left transition-all text-xs group"
+                  class="p-2.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-left transition-all text-xs group flex items-center gap-2.5"
                 >
-                  <div class="flex items-center gap-2">
-                    <img :src="acc.avatar" class="w-6 h-6 rounded-full object-cover border border-slate-700" />
-                    <div class="min-w-0">
-                      <div class="font-bold text-white group-hover:text-indigo-400 transition-colors truncate">{{ acc.name }}</div>
-                      <div class="text-[10px] text-slate-500 truncate">{{ acc.role }}</div>
-                    </div>
+                  <img :src="acc.avatar" class="w-7 h-7 rounded-full object-cover border border-slate-700 flex-shrink-0" />
+                  <div class="min-w-0">
+                    <div class="font-bold text-white group-hover:text-indigo-400 transition-colors truncate">{{ acc.name }}</div>
+                    <div class="text-[10px] text-slate-500 truncate">{{ acc.role }}</div>
                   </div>
                 </button>
               </div>
@@ -465,7 +462,7 @@ function handleDemoLogin(email: string) {
         </div>
 
         <!-- Footer terms -->
-        <div class="pt-6 text-center text-[11px] text-slate-500">
+        <div class="pt-4 text-center text-[11px] text-slate-500">
           <span>Protected by Enterprise Encryption • NexLeads Multi-Tenant CRM</span>
         </div>
       </div>
