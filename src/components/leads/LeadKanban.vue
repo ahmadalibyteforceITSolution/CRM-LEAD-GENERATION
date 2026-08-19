@@ -83,33 +83,41 @@ function getStageHeaderColor(stage: PipelineStage): string {
     default: return 'border-t-slate-400';
   }
 }
+
+function moveToNextStage(lead: Lead, event: MouseEvent) {
+  event.stopPropagation();
+  const currentIndex = stages.indexOf(lead.stage);
+  if (currentIndex < stages.length - 1) {
+    store.updateLeadStage(lead.id, stages[currentIndex + 1]);
+  }
+}
 </script>
 
 <template>
   <div class="flex-1 flex flex-col h-full overflow-hidden bg-slate-100/60 dark:bg-slate-950/60">
     <!-- Kanban Header Info -->
-    <div class="px-6 py-3 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <h2 class="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+    <div class="px-3 sm:px-6 py-2.5 sm:py-3 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+      <div class="flex items-center gap-2 sm:gap-3">
+        <h2 class="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5 sm:gap-2">
           <span>11-Stage Deal Pipeline</span>
-          <span class="text-xs font-normal text-slate-500">• Drag cards across columns or use quick stage updater</span>
+          <span class="text-[11px] font-normal text-slate-500 hidden md:inline">• Drag cards or use quick controls</span>
         </h2>
       </div>
 
-      <div class="text-xs font-semibold text-slate-600 dark:text-slate-300">
-        Total Pipeline Value: <strong class="text-indigo-600 dark:text-indigo-400">${{ store.leads.reduce((a, b) => a + (b.dealValue || 0), 0).toLocaleString() }}</strong>
+      <div class="text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-300">
+        Total Pipeline Value: <strong class="text-indigo-600 dark:text-indigo-400 font-mono font-bold">${{ store.leads.reduce((a, b) => a + (b.dealValue || 0), 0).toLocaleString() }}</strong>
       </div>
     </div>
 
     <!-- Horizontal Kanban Columns Container -->
-    <div class="flex-1 overflow-x-auto overflow-y-hidden p-4 flex gap-3.5 items-start select-none">
+    <div class="flex-1 overflow-x-auto overflow-y-hidden p-2.5 sm:p-4 flex gap-2.5 sm:gap-3.5 items-start select-none touch-pan-x">
       <div
         v-for="stage in stages"
         :key="stage"
         @dragover="onDragOver"
         @drop="onDrop(stage, $event)"
         :class="[
-          'w-72 flex-shrink-0 flex flex-col max-h-full rounded-2xl bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 border-t-4 shadow-sm transition-all',
+          'w-[270px] sm:w-72 md:w-80 flex-shrink-0 flex flex-col max-h-full rounded-2xl bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 border-t-4 shadow-sm transition-all',
           getStageHeaderColor(stage)
         ]"
       >

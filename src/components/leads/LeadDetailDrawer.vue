@@ -133,52 +133,54 @@ function closeDrawer() {
     v-if="store.isDetailDrawerOpen && lead"
     class="fixed inset-0 z-50 overflow-hidden bg-slate-950/60 backdrop-blur-sm flex justify-end animate-in fade-in duration-200"
   >
-    <div class="w-full max-w-4xl bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 h-full flex flex-col shadow-2xl overflow-hidden animate-in slide-in-from-right duration-300">
+    <div class="w-full sm:max-w-2xl lg:max-w-4xl bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 h-full flex flex-col shadow-2xl overflow-hidden animate-in slide-in-from-right duration-300">
       <!-- Drawer Top Bar -->
-      <div class="p-6 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white font-bold text-lg flex items-center justify-center shadow-md">
+      <div class="p-3.5 sm:p-6 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 flex flex-wrap items-center justify-between gap-2.5">
+        <div class="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+          <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white font-bold text-base sm:text-lg flex items-center justify-center shadow-md flex-shrink-0">
             {{ lead.name.charAt(0).toUpperCase() }}
           </div>
-          <div>
-            <div class="flex items-center gap-2">
-              <h2 class="text-base font-extrabold text-slate-900 dark:text-white">{{ lead.name }}</h2>
+          <div class="min-w-0">
+            <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+              <h2 class="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white truncate">{{ lead.name }}</h2>
               <PriorityBadge :priority="lead.priority" size="sm" />
               <StageBadge :stage="lead.stage" size="sm" />
             </div>
-            <div class="text-xs text-slate-500 flex items-center gap-2 mt-0.5">
-              <span class="font-semibold text-slate-700 dark:text-slate-300">{{ lead.companyName }}</span>
+            <div class="text-[11px] sm:text-xs text-slate-500 flex items-center gap-1.5 sm:gap-2 mt-0.5 flex-wrap">
+              <span class="font-semibold text-slate-700 dark:text-slate-300 truncate">{{ lead.companyName }}</span>
               <span>•</span>
-              <span class="flex items-center gap-1"><MapPin class="w-3 h-3 text-slate-400" /> {{ lead.city || 'No city' }}</span>
+              <span class="flex items-center gap-1 truncate"><MapPin class="w-3 h-3 text-slate-400 flex-shrink-0" /> {{ lead.city || 'No city' }}</span>
               <span>•</span>
               <span class="font-mono text-emerald-600 font-bold">${{ (lead.dealValue || 0).toLocaleString() }}</span>
             </div>
           </div>
         </div>
 
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
           <!-- Cold Call Action -->
           <button
             @click="store.openQuickCall(lead.id)"
-            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-600/20"
+            class="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-600/20"
           >
             <PhoneCall class="w-3.5 h-3.5" />
-            <span>Call Lead</span>
+            <span class="hidden sm:inline">Call Lead</span>
+            <span class="sm:hidden">Call</span>
           </button>
 
           <!-- WhatsApp Action -->
           <button
             @click="store.openQuickWhatsApp(lead.id)"
-            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20"
+            class="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20"
           >
             <MessageCircle class="w-3.5 h-3.5" />
-            <span>WhatsApp</span>
+            <span class="hidden sm:inline">WhatsApp</span>
+            <span class="sm:hidden">WA</span>
           </button>
 
           <!-- Close -->
           <button
             @click="closeDrawer"
-            class="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800"
+            class="p-1.5 sm:p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800"
           >
             <X class="w-5 h-5" />
           </button>
@@ -188,7 +190,7 @@ function closeDrawer() {
       <!-- Drawer Body: Grid layout (Left: Info & Ownership, Right: Timeline & Notes) -->
       <div class="flex-1 overflow-y-auto grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-slate-200 dark:divide-slate-800 text-xs">
         <!-- LEFT COLUMN: Lead Information & Ownership (5 Cols) -->
-        <div class="lg:col-span-5 p-6 space-y-6 overflow-y-auto">
+        <div class="lg:col-span-5 p-4 sm:p-6 space-y-5 sm:space-y-6 overflow-y-auto">
           <!-- 5-Rule Health Card -->
           <div class="p-3.5 rounded-2xl bg-gradient-to-br from-indigo-50/80 to-slate-50 dark:from-indigo-950/40 dark:to-slate-900 border border-indigo-200/70 dark:border-indigo-800/70 space-y-2">
             <div class="flex items-center justify-between">

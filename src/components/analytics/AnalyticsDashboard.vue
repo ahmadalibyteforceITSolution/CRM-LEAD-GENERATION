@@ -108,35 +108,35 @@ const repLeaderboard = computed(() => {
 </script>
 
 <template>
-  <div class="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/50 dark:bg-slate-950/50">
+  <div class="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 sm:space-y-6 bg-slate-50/50 dark:bg-slate-950/50">
     <!-- Header -->
-    <div class="flex items-center justify-between">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
       <div>
-        <h2 class="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+        <h2 class="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
           <span>Lead Generation & Sales Performance Analytics</span>
         </h2>
-        <p class="text-xs text-slate-500 dark:text-slate-400">Real-time metrics, conversion funnel attribution, outreach volume, and rep KPI leaderboards.</p>
+        <p class="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">Real-time metrics, conversion funnel attribution, outreach volume, and rep KPI leaderboards.</p>
       </div>
 
-      <div class="flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200">
-        <ShieldCheck class="w-4 h-4 text-emerald-600" />
-        <span>{{ store.complianceRate }}% Overall 5-Rule CRM Compliance</span>
+      <div class="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 self-start sm:self-auto">
+        <ShieldCheck class="w-4 h-4 text-emerald-600 flex-shrink-0" />
+        <span>{{ store.complianceRate }}% 5-Rule CRM Compliance</span>
       </div>
     </div>
 
     <!-- Top KPI Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
       <!-- Total Pipeline Value -->
-      <div class="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
+      <div class="p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
         <div>
-          <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Pipeline Value</div>
-          <div class="text-2xl font-extrabold text-slate-900 dark:text-white mt-1">
+          <div class="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Pipeline Value</div>
+          <div class="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white mt-1">
             ${{ totalPipelineValue.toLocaleString() }}
           </div>
           <div class="text-[10px] text-slate-500 font-medium mt-0.5">Across all active deal stages</div>
         </div>
-        <div class="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 flex items-center justify-center">
-          <DollarSign class="w-6 h-6" />
+        <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 flex items-center justify-center flex-shrink-0">
+          <DollarSign class="w-5 h-5 sm:w-6 sm:h-6" />
         </div>
       </div>
 
@@ -251,7 +251,7 @@ const repLeaderboard = computed(() => {
       </div>
 
       <div class="overflow-x-auto">
-        <table class="w-full text-left text-xs border-collapse">
+        <table class="w-full min-w-[650px] text-left text-xs border-collapse">
           <thead>
             <tr class="border-b border-slate-200 dark:border-slate-800 text-[11px] font-bold uppercase tracking-wider text-slate-400">
               <th class="py-2.5 px-3">Salesperson</th>

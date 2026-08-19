@@ -25,11 +25,13 @@ function setView(view: 'table' | 'kanban' | 'queues' | 'analytics') {
   if (view !== 'queues') {
     store.activeQueueFilter = 'all';
   }
+  store.isMobileSidebarOpen = false;
 }
 
 function selectQueue(queueKey: any) {
   store.currentView = 'queues';
   store.activeQueueFilter = queueKey;
+  store.isMobileSidebarOpen = false;
 }
 
 const queuesList = computed(() => [
@@ -238,7 +240,7 @@ const queuesList = computed(() => [
           <div
             v-for="rep in store.salespersons"
             :key="rep.id"
-            @click="store.selectedSalespersonFilter = store.selectedSalespersonFilter === rep.name ? 'all' : rep.name"
+            @click="store.selectedSalespersonFilter = store.selectedSalespersonFilter === rep.name ? 'all' : rep.name; store.isMobileSidebarOpen = false"
             :class="[
               'flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs transition-colors cursor-pointer',
               store.selectedSalespersonFilter === rep.name

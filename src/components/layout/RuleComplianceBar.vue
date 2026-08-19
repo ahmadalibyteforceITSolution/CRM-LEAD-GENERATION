@@ -20,13 +20,14 @@ function toggleRuleFilter() {
 </script>
 
 <template>
-  <div class="border-b border-slate-200/80 dark:border-slate-800 bg-gradient-to-r from-indigo-900 via-slate-900 to-indigo-950 text-white px-3 sm:px-4 py-2 text-[11px] sm:text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 shadow-inner">
-    <div class="flex items-center gap-2 flex-wrap">
-      <div class="flex items-center gap-1.5 px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-semibold border border-indigo-500/30 text-[10px] sm:text-xs">
+  <div class="border-b border-slate-200/80 dark:border-slate-800 bg-gradient-to-r from-indigo-900 via-slate-900 to-indigo-950 text-white px-3 sm:px-4 py-1.5 sm:py-2 text-[11px] sm:text-xs flex flex-wrap items-center justify-between gap-2 shadow-inner">
+    <!-- Left: 5 Rules Badge and compact description -->
+    <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap min-w-0">
+      <div class="flex items-center gap-1 sm:gap-1.5 px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-semibold border border-indigo-500/30 text-[10px] sm:text-xs flex-shrink-0">
         <Sparkles class="w-3 h-3 text-indigo-400" />
         <span>5 Golden Rules</span>
       </div>
-      <span class="text-slate-200 font-medium text-[11px] sm:text-xs">
+      <span class="text-slate-200 font-medium text-[10px] sm:text-xs hidden md:inline truncate">
         Every lead:
         <strong class="text-white font-semibold">Assigned</strong> +
         <strong class="text-white font-semibold">Status</strong> +
@@ -34,12 +35,16 @@ function toggleRuleFilter() {
         <strong class="text-white font-semibold">Next Action</strong> +
         <strong class="text-white font-semibold">Follow-Up</strong>
       </span>
+      <span class="text-slate-200 font-medium text-[10px] md:hidden truncate">
+        Assigned • Status • Contact • Action • Follow-Up
+      </span>
     </div>
 
-    <div class="flex items-center gap-2.5 self-end sm:self-auto">
+    <!-- Right: Health Progress & Action Button -->
+    <div class="flex items-center gap-2 sm:gap-2.5 flex-shrink-0 ml-auto">
       <!-- Health meter -->
-      <div class="flex items-center gap-1.5 bg-slate-800/80 px-2.5 py-0.5 rounded-full border border-slate-700 text-[10px] sm:text-xs">
-        <div class="w-14 sm:w-20 h-1.5 sm:h-2 bg-slate-700 rounded-full overflow-hidden flex">
+      <div class="flex items-center gap-1.5 bg-slate-800/80 px-2 py-0.5 rounded-full border border-slate-700 text-[10px] sm:text-xs">
+        <div class="w-12 sm:w-20 h-1.5 sm:h-2 bg-slate-700 rounded-full overflow-hidden flex">
           <div
             class="h-full transition-all duration-500 rounded-full"
             :class="rate >= 90 ? 'bg-emerald-400' : rate >= 70 ? 'bg-amber-400' : 'bg-rose-400'"
@@ -56,18 +61,20 @@ function toggleRuleFilter() {
         v-if="nonCompliantCount > 0"
         @click="toggleRuleFilter"
         :class="[
-          'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md font-semibold transition-all shadow-sm',
+          'inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md font-semibold text-[10px] sm:text-xs transition-all shadow-sm',
           isFilteringRules
             ? 'bg-amber-500 text-slate-950 ring-2 ring-white/50'
             : 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40'
         ]"
       >
-        <ShieldAlert class="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-        <span>{{ isFilteringRules ? 'Showing ' + nonCompliantCount + ' Non-Compliant' : nonCompliantCount + ' Missing Rules - Fix Now' }}</span>
+        <ShieldAlert class="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-400 animate-pulse flex-shrink-0" />
+        <span class="hidden sm:inline">{{ isFilteringRules ? 'Showing ' + nonCompliantCount + ' Non-Compliant' : nonCompliantCount + ' Missing Rules - Fix Now' }}</span>
+        <span class="sm:hidden">{{ nonCompliantCount }} Fix</span>
       </button>
-      <div v-else class="flex items-center gap-1 text-emerald-400 font-semibold">
-        <CheckCircle2 class="w-4 h-4" />
-        <span>100% Complete</span>
+      <div v-else class="flex items-center gap-1 text-emerald-400 font-semibold text-[10px] sm:text-xs">
+        <CheckCircle2 class="w-3.5 h-3.5 flex-shrink-0" />
+        <span class="hidden sm:inline">100% Complete</span>
+        <span class="sm:hidden">100%</span>
       </div>
     </div>
   </div>
