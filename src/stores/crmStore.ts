@@ -12,17 +12,18 @@ import {
   LeadSource,
   SmartQueueFilter
 } from '../types/crm';
-import { INITIAL_LEADS, INITIAL_SALESPERSONS, INITIAL_ACTIVITIES } from '../data/seedData';
+import { INITIAL_SALESPERSONS } from '../data/seedData';
 import { isFollowUpDueToday, isFollowUpOverdue, isFollowUpUpcoming, formatDate } from '../utils/dateUtils';
 import { apiService } from '../services/api';
 import confetti from 'canvas-confetti';
 
 export const useCRMStore = defineStore('crm', () => {
-  // --- Persistent State ---
+  // --- Pure MongoDB Atlas Database State (NO localStorage) ---
   const leads = ref<Lead[]>([]);
-  const salespersons = ref<Salesperson[]>([]);
+  const salespersons = ref<Salesperson[]>(INITIAL_SALESPERSONS);
   const activities = ref<ActivityHistoryItem[]>([]);
-  const isDbConnected = ref<boolean>(false);
+  const isDbConnected = ref<boolean>(true);
+  const isLoading = ref<boolean>(false);
 
   // Current active user / salesperson
   const currentSalesperson = ref<string>('Ali Raza');
@@ -44,99 +45,42 @@ export const useCRMStore = defineStore('crm', () => {
   const isDetailDrawerOpen = ref(false);
   const activeLeadId = ref<string | null>(null);
 
-  // Initialize from MongoDB Atlas Database
-  async function initStore() {
-    leads.value = [];
-    activities.value = [];
-
-    // 1. Check if localStorage has prior saved real data
-    const savedLeads = localStorage.getItem('nexleads_crm_leads');
-    const savedActivities = localStorage.getItem('nexleads_crm_activities');
-
-    if (savedLeads) {
-      try {
-        leads.value = JSON.parse(savedLeads);
-      } catch {
-        leads.value = [];
-      }
-    }
-
-    if (savedActivities) {
-      try {
-        activities.value = JSON.parse(savedActivities);
-      } catch {
-        activities.value = [];
-      }
-    }
-
-    salespersons.value = INITIAL_SALESPERSONS;
-
-    // 2. Fetch live data directly from MongoDB Atlas
+  // --- Fetch Directly from MongoDB Database ---
+  async function fetchAllFromDB() {
+    isLoading.value = true;
     try {
-      const health = await apiService.checkHealth();
-      if (health.status === 'ok') {
-        isDbConnected.value = true;
-        const dbLeads = await apiService.fetchLeads();
-        if (dbLeads && Array.isArray(dbLeads)) {
-          leads.value = dbLeads;
-          saveLeads();
-        }
+      const [dbLeads, dbActivities] = await Promise.all([
+        apiService.fetchLeads(),
+        apiService.fetchActivities()
+      ]);
 
-        const dbActivities = await apiService.fetchActivities();
-        if (dbActivities && Array.isArray(dbActivities)) {
-          activities.value = dbActivities;
-          saveActivities();
-        }
+      if (dbLeads && Array.isArray(dbLeads)) {
+        leads.value = dbLeads;
       }
-    } catch (e) {
-      console.log('Using local database storage');
+      if (dbActivities && Array.isArray(dbActivities)) {
+        activities.value = dbActivities;
+      }
+      isDbConnected.value = true;
+    } catch (error) {
+      console.error('Failed to fetch from MongoDB database:', error);
+    } finally {
+      isLoading.value = false;
     }
   }
 
-  function clearAllData() {
-    leads.value = [];
-    activities.value = [];
-    saveLeads();
-    saveActivities();
-  }
+  async function initStore() {
+    // Clear any residual localStorage completely
+    localStorage.removeItem('nexleads_crm_leads');
+    localStorage.removeItem('nexleads_crm_activities');
+    localStorage.removeItem('nexleads_crm_salespersons');
 
-  function loadSampleData() {
-    leads.value = JSON.parse(JSON.stringify(INITIAL_LEADS));
-    activities.value = JSON.parse(JSON.stringify(INITIAL_ACTIVITIES));
-    salespersons.value = JSON.parse(JSON.stringify(INITIAL_SALESPERSONS));
-    saveLeads();
-    saveActivities();
-    saveSalespersons();
-    apiService.syncDatabase(leads.value, activities.value, salespersons.value).catch(() => {});
-  }
-
-  function saveLeads() {
-    localStorage.setItem('nexleads_crm_leads', JSON.stringify(leads.value));
-  }
-
-  function saveSalespersons() {
-    localStorage.setItem('nexleads_crm_salespersons', JSON.stringify(salespersons.value));
-  }
-
-  function saveActivities() {
-    localStorage.setItem('nexleads_crm_activities', JSON.stringify(activities.value));
-  }
-
-  function resetToDemoData() {
-    leads.value = JSON.parse(JSON.stringify(INITIAL_LEADS));
-    salespersons.value = JSON.parse(JSON.stringify(INITIAL_SALESPERSONS));
-    activities.value = JSON.parse(JSON.stringify(INITIAL_ACTIVITIES));
-    saveLeads();
-    saveSalespersons();
-    saveActivities();
+    await fetchAllFromDB();
   }
 
   // --- Rule Compliance Engine ---
-  // "No lead should remain without these five things: Assigned Person + Lead Status + Last Contact + Next Action + Follow-Up Date & Time"
   function checkLeadCompliance(lead: Lead): RuleComplianceStatus {
     const hasAssignedPerson = !!(lead.assignedSalesperson && lead.assignedSalesperson.trim().length > 0);
     const hasLeadStatus = !!(lead.stage && lead.stage.trim().length > 0);
-    // If brand new and created today, last contact can be marked as 'Pending First Contact' or has value
     const hasLastContact = !!(lead.lastContactDate && lead.lastContactDate.trim().length > 0);
     const hasNextAction = !!(lead.nextAction && lead.nextAction.trim().length > 0);
     const hasNextFollowUp = !!(lead.nextFollowUpDate && lead.nextFollowUpDate.trim().length > 0);
@@ -173,7 +117,6 @@ export const useCRMStore = defineStore('crm', () => {
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   });
 
-  // Follow-Up Reminders computed lists
   const queueFollowUpsDueToday = computed(() => {
     return leads.value.filter(l => l.stage !== 'Won / Closed' && l.stage !== 'Lost' && isFollowUpDueToday(l.nextFollowUpDate));
   });
@@ -187,7 +130,7 @@ export const useCRMStore = defineStore('crm', () => {
   });
 
   const queueNotContacted = computed(() => {
-    return leads.value.filter(l => l.stage === 'New Lead' || !l.lastContactDate || l.totalCalls + l.totalWhatsApp === 0);
+    return leads.value.filter(l => l.stage === 'New Lead' || !l.lastContactDate || (l.totalCalls || 0) + (l.totalWhatsApp || 0) === 0);
   });
 
   const queueNoResponse = computed(() => {
@@ -215,7 +158,6 @@ export const useCRMStore = defineStore('crm', () => {
   // Filtered Leads
   const filteredLeads = computed(() => {
     return leads.value.filter(lead => {
-      // Smart queue filter
       if (activeQueueFilter.value === 'due_today' && !queueFollowUpsDueToday.value.some(l => l.id === lead.id)) return false;
       if (activeQueueFilter.value === 'upcoming' && !queueUpcomingFollowUps.value.some(l => l.id === lead.id)) return false;
       if (activeQueueFilter.value === 'overdue' && !queueOverdueFollowUps.value.some(l => l.id === lead.id)) return false;
@@ -225,22 +167,20 @@ export const useCRMStore = defineStore('crm', () => {
       if (activeQueueFilter.value === 'proposals_pending' && !queueProposalsRequiringFollowUp.value.some(l => l.id === lead.id)) return false;
       if (activeQueueFilter.value === 'missing_rules' && checkLeadCompliance(lead).isCompliant) return false;
 
-      // Dropdown filters
       if (selectedStageFilter.value !== 'all' && lead.stage !== selectedStageFilter.value) return false;
       if (selectedPriorityFilter.value !== 'all' && lead.priority !== selectedPriorityFilter.value) return false;
       if (selectedSourceFilter.value !== 'all' && lead.leadSource !== selectedSourceFilter.value) return false;
       if (selectedSalespersonFilter.value !== 'all' && lead.assignedSalesperson !== selectedSalespersonFilter.value) return false;
 
-      // Search Query
       if (searchQuery.value.trim().length > 0) {
         const q = searchQuery.value.toLowerCase();
         const matchesName = lead.name.toLowerCase().includes(q);
-        const matchesCompany = lead.companyName.toLowerCase().includes(q);
-        const matchesPhone = lead.phoneNumber.toLowerCase().includes(q) || lead.whatsAppNumber.toLowerCase().includes(q);
-        const matchesCity = lead.city.toLowerCase().includes(q);
-        const matchesIndustry = lead.industry.toLowerCase().includes(q);
-        const matchesService = lead.serviceRequired.toLowerCase().includes(q);
-        const matchesNotes = lead.notes.toLowerCase().includes(q);
+        const matchesCompany = (lead.companyName || '').toLowerCase().includes(q);
+        const matchesPhone = (lead.phoneNumber || '').toLowerCase().includes(q) || (lead.whatsAppNumber || '').toLowerCase().includes(q);
+        const matchesCity = (lead.city || '').toLowerCase().includes(q);
+        const matchesIndustry = (lead.industry || '').toLowerCase().includes(q);
+        const matchesService = (lead.serviceRequired || '').toLowerCase().includes(q);
+        const matchesNotes = (lead.notes || '').toLowerCase().includes(q);
         if (!matchesName && !matchesCompany && !matchesPhone && !matchesCity && !matchesIndustry && !matchesService && !matchesNotes) {
           return false;
         }
@@ -250,8 +190,8 @@ export const useCRMStore = defineStore('crm', () => {
     });
   });
 
-  // --- CRUD Operations ---
-  function addLead(newLeadData: Partial<Lead>): Lead {
+  // --- Direct MongoDB CRUD Operations ---
+  async function addLead(newLeadData: Partial<Lead>): Promise<Lead> {
     const today = new Date().toISOString().split('T')[0];
     const nowTime = new Date().toTimeString().slice(0, 5);
 
@@ -293,12 +233,14 @@ export const useCRMStore = defineStore('crm', () => {
       updatedAt: new Date().toISOString()
     };
 
+    // Optimistic UI update
     leads.value.unshift(newLead);
-    saveLeads();
-    apiService.saveLead(newLead).catch(() => {});
 
-    // Log Activity for lead addition
-    addActivityItem({
+    // Save directly to MongoDB Database
+    await apiService.saveLead(newLead);
+
+    // Log Activity directly to MongoDB Database
+    await addActivityItem({
       leadId: newLead.id,
       date: formatDate(today, 'dd MMM'),
       time: nowTime,
@@ -306,7 +248,7 @@ export const useCRMStore = defineStore('crm', () => {
       salesperson: currentSalesperson.value,
       attendedOrResponded: 'Scheduled',
       status: 'New Lead',
-      notes: `Lead added from ${newLead.leadSource}. Assigned to ${newLead.assignedSalesperson}.`,
+      notes: `Lead created from ${newLead.leadSource}. Assigned to ${newLead.assignedSalesperson}.`,
       nextFollowUp: `Follow up ${formatDate(newLead.nextFollowUpDate, 'dd MMM')}, ${newLead.nextFollowUpTime}`,
       type: 'note'
     });
@@ -314,7 +256,7 @@ export const useCRMStore = defineStore('crm', () => {
     return newLead;
   }
 
-  function updateLead(id: string, updates: Partial<Lead>) {
+  async function updateLead(id: string, updates: Partial<Lead>) {
     const idx = leads.value.findIndex(l => l.id === id);
     if (idx === -1) return;
 
@@ -325,7 +267,6 @@ export const useCRMStore = defineStore('crm', () => {
       updatedAt: new Date().toISOString()
     };
 
-    // Confetti on Won!
     if (updates.stage && updates.stage === 'Won / Closed' && oldStage !== 'Won / Closed') {
       confetti({
         particleCount: 120,
@@ -334,11 +275,11 @@ export const useCRMStore = defineStore('crm', () => {
       });
     }
 
-    saveLeads();
-    apiService.updateLead(id, updates).catch(() => {});
+    // Save directly to MongoDB Database
+    await apiService.updateLead(id, updates);
   }
 
-  function updateLeadStage(id: string, newStage: PipelineStage) {
+  async function updateLeadStage(id: string, newStage: PipelineStage) {
     const lead = leads.value.find(l => l.id === id);
     if (!lead) return;
 
@@ -349,7 +290,9 @@ export const useCRMStore = defineStore('crm', () => {
     const today = new Date().toISOString().split('T')[0];
     const nowTime = new Date().toTimeString().slice(0, 5);
 
-    addActivityItem({
+    await apiService.updateLead(id, { stage: newStage });
+
+    await addActivityItem({
       leadId: id,
       date: formatDate(today, 'dd MMM'),
       time: nowTime,
@@ -369,37 +312,32 @@ export const useCRMStore = defineStore('crm', () => {
         origin: { y: 0.6 }
       });
     }
-
-    saveLeads();
-    apiService.updateLead(id, { stage: newStage }).catch(() => {});
   }
 
-  function deleteLead(id: string) {
+  async function deleteLead(id: string) {
     leads.value = leads.value.filter(l => l.id !== id);
     activities.value = activities.value.filter(a => a.leadId !== id);
     if (activeLeadId.value === id) {
       activeLeadId.value = null;
       isDetailDrawerOpen.value = false;
     }
-    saveLeads();
-    saveActivities();
-    apiService.deleteLead(id).catch(() => {});
+    // Delete directly from MongoDB Database
+    await apiService.deleteLead(id);
   }
 
-  // --- Activities & Logging ---
-  function addActivityItem(item: Omit<ActivityHistoryItem, 'id' | 'createdAt'>) {
+  // --- Activities & Logging directly to MongoDB ---
+  async function addActivityItem(item: Omit<ActivityHistoryItem, 'id' | 'createdAt'>) {
     const newActivity: ActivityHistoryItem = {
       id: 'act-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7),
       createdAt: new Date().toISOString(),
       ...item
     };
     activities.value.unshift(newActivity);
-    saveActivities();
-    apiService.saveActivity(newActivity).catch(() => {});
+    await apiService.saveActivity(newActivity);
   }
 
-  // Log Cold Call
-  function logColdCall(callData: Omit<ColdCallLog, 'id' | 'createdAt'>) {
+  // Log Cold Call directly to MongoDB
+  async function logColdCall(callData: Omit<ColdCallLog, 'id' | 'createdAt'>) {
     const lead = leads.value.find(l => l.id === callData.leadId);
     if (!lead) return;
 
@@ -412,7 +350,6 @@ export const useCRMStore = defineStore('crm', () => {
     lead.nextFollowUpTime = callData.nextFollowUpTime;
     lead.updatedAt = new Date().toISOString();
 
-    // Auto stage adjustment if interested
     if (callData.outcomes.includes('Interested') && (lead.stage === 'New Lead' || lead.stage === 'Call Attempted')) {
       lead.stage = 'Interested';
       lead.priority = 'Hot';
@@ -424,9 +361,18 @@ export const useCRMStore = defineStore('crm', () => {
       lead.priority = 'Not Qualified';
     }
 
-    saveLeads();
+    await apiService.updateLead(lead.id, {
+      totalCalls: lead.totalCalls,
+      lastContactedBy: lead.lastContactedBy,
+      lastContactDate: lead.lastContactDate,
+      lastContactTime: lead.lastContactTime,
+      nextAction: lead.nextAction,
+      nextFollowUpDate: lead.nextFollowUpDate,
+      nextFollowUpTime: lead.nextFollowUpTime,
+      stage: lead.stage,
+      priority: lead.priority
+    });
 
-    // Create activity timeline entry (strictly formatted as per spec)
     const outcomesStr = callData.outcomes.join(', ');
     const dmStr = callData.decisionMakerAvailable ? ' [DM Available]' : '';
     const noteText = `${outcomesStr}${dmStr}. ${callData.callNotes}`;
@@ -434,7 +380,7 @@ export const useCRMStore = defineStore('crm', () => {
       ? `Follow up ${formatDate(callData.nextFollowUpDate, 'dd MMM')}, ${callData.nextFollowUpTime}`
       : 'No follow up set';
 
-    addActivityItem({
+    await addActivityItem({
       leadId: callData.leadId,
       date: formatDate(callData.callDate, 'dd MMM'),
       time: callData.callTime,
@@ -448,8 +394,8 @@ export const useCRMStore = defineStore('crm', () => {
     });
   }
 
-  // Log WhatsApp
-  function logWhatsApp(waData: Omit<WhatsAppLog, 'id' | 'createdAt'>) {
+  // Log WhatsApp directly to MongoDB
+  async function logWhatsApp(waData: Omit<WhatsAppLog, 'id' | 'createdAt'>) {
     const lead = leads.value.find(l => l.id === waData.leadId);
     if (!lead) return;
 
@@ -463,7 +409,6 @@ export const useCRMStore = defineStore('crm', () => {
     }
     lead.updatedAt = new Date().toISOString();
 
-    // Stage progression
     if (waData.proposalSent) {
       lead.stage = 'Proposal Sent';
       lead.priority = 'Hot';
@@ -471,9 +416,17 @@ export const useCRMStore = defineStore('crm', () => {
       lead.stage = 'WhatsApp Sent';
     }
 
-    saveLeads();
+    await apiService.updateLead(lead.id, {
+      totalWhatsApp: lead.totalWhatsApp,
+      lastContactedBy: lead.lastContactedBy,
+      lastContactDate: lead.lastContactDate,
+      lastContactTime: lead.lastContactTime,
+      nextFollowUpDate: lead.nextFollowUpDate,
+      nextFollowUpTime: lead.nextFollowUpTime,
+      stage: lead.stage,
+      priority: lead.priority
+    });
 
-    // Activity timeline entry
     let notesSummary = waData.conversationNotes;
     if (waData.documentsSent) notesSummary = `[Docs Sent] ${notesSummary}`;
     if (waData.proposalSent) notesSummary = `[Proposal Sent] ${notesSummary}`;
@@ -482,7 +435,7 @@ export const useCRMStore = defineStore('crm', () => {
       ? `Follow up ${formatDate(waData.nextFollowUpDate, 'dd MMM')}, ${waData.nextFollowUpTime}`
       : 'No follow up set';
 
-    addActivityItem({
+    await addActivityItem({
       leadId: waData.leadId,
       date: formatDate(waData.messageSentDate, 'dd MMM'),
       time: waData.messageSentTime,
@@ -496,7 +449,6 @@ export const useCRMStore = defineStore('crm', () => {
     });
   }
 
-  // Open helper modals
   function openLeadDetail(leadId: string) {
     activeLeadId.value = leadId;
     isDetailDrawerOpen.value = true;
@@ -512,7 +464,7 @@ export const useCRMStore = defineStore('crm', () => {
     isQuickWhatsAppModalOpen.value = true;
   }
 
-  // CSV Import & Export
+  // CSV Export & Import directly with MongoDB
   function exportLeadsToCSV() {
     const headers = [
       'Lead Name',
@@ -565,20 +517,20 @@ export const useCRMStore = defineStore('crm', () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `nexleads_export_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', `nexleads_crm_export_${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   }
 
-  function importLeadsFromCSV(parsedRows: any[]) {
+  async function importLeadsFromCSV(parsedRows: any[]) {
     let importedCount = 0;
     const today = new Date().toISOString().split('T')[0];
 
     for (const row of parsedRows) {
       if (!row['Lead Name'] && !row['name'] && !row['Company Name'] && !row['companyName']) continue;
 
-      addLead({
+      await addLead({
         name: row['Lead Name'] || row['name'] || 'New Lead',
         companyName: row['Company Name'] || row['company'] || '',
         phoneNumber: row['Phone Number'] || row['phone'] || '',
@@ -614,6 +566,8 @@ export const useCRMStore = defineStore('crm', () => {
     selectedPriorityFilter,
     selectedSourceFilter,
     selectedSalespersonFilter,
+    isDbConnected,
+    isLoading,
 
     // Modals
     isCreateLeadModalOpen,
@@ -639,6 +593,7 @@ export const useCRMStore = defineStore('crm', () => {
 
     // Methods
     initStore,
+    fetchAllFromDB,
     checkLeadCompliance,
     addLead,
     updateLead,
@@ -650,9 +605,6 @@ export const useCRMStore = defineStore('crm', () => {
     openLeadDetail,
     openQuickCall,
     openQuickWhatsApp,
-    resetToDemoData,
-    clearAllData,
-    loadSampleData,
     exportLeadsToCSV,
     importLeadsFromCSV
   };
