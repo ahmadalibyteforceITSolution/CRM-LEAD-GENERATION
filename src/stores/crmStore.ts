@@ -25,7 +25,13 @@ export const useCRMStore = defineStore('crm', () => {
   const isDbConnected = ref<boolean>(true);
   const isLoading = ref<boolean>(false);
 
-  // Current active user / salesperson
+  // Current active user & Authentication
+  const currentUser = ref<User | null>(null);
+  const isAuthenticated = computed(() => !!currentUser.value);
+  const authError = ref<string>('');
+  const isAuthLoading = ref<boolean>(false);
+
+  // Current active salesperson name
   const currentSalesperson = ref<string>('Ali Raza');
 
   // UI state
@@ -45,6 +51,85 @@ export const useCRMStore = defineStore('crm', () => {
   const isDetailDrawerOpen = ref(false);
   const isMobileSidebarOpen = ref(false);
   const activeLeadId = ref<string | null>(null);
+
+  // --- Auth Actions ---
+  async function loginUser(email: string, pass: string): Promise<boolean> {
+    isAuthLoading.value = true;
+    authError.value = '';
+    try {
+      const res = await apiService.login(email, pass);
+      if (res.success && res.user) {
+        currentUser.value = res.user;
+        currentSalesperson.value = res.user.name;
+        localStorage.setItem('nexleads_auth_user', JSON.stringify(res.user));
+        confetti({ particleCount: 50, spread: 60 });
+        return true;
+      } else {
+        authError.value = res.error || 'Invalid credentials';
+        return false;
+      }
+    } catch (err: any) {
+      authError.value = 'Failed to connect to authentication server';
+      return false;
+    } finally {
+      isAuthLoading.value = false;
+    }
+  }
+
+  async function registerUser(data: { name: string; email: string; password: string; role?: string; companyName?: string }): Promise<boolean> {
+    isAuthLoading.value = true;
+    authError.value = '';
+    try {
+      const res = await apiService.register(data);
+      if (res.success && res.user) {
+        currentUser.value = res.user;
+        currentSalesperson.value = res.user.name;
+        // Add to salespersons list if not present
+        if (!salespersons.value.some(s => s.name === res.user?.name)) {
+          salespersons.value.unshift({
+            id: res.user.id,
+            name: res.user.name,
+            email: res.user.email,
+            role: res.user.role,
+            avatar: res.user.avatar || '',
+            activeLeadsCount: 0
+          });
+        }
+        localStorage.setItem('nexleads_auth_user', JSON.stringify(res.user));
+        confetti({ particleCount: 70, spread: 80 });
+        return true;
+      } else {
+        authError.value = res.error || 'Registration failed';
+        return false;
+      }
+    } catch (err: any) {
+      authError.value = 'Registration error';
+      return false;
+    } finally {
+      isAuthLoading.value = false;
+    }
+  }
+
+  function loginDemoUser(demoEmail: string = 'ali.raza@nexleads.io') {
+    const sp = salespersons.value.find(s => s.email === demoEmail) || salespersons.value[0];
+    const demoUser: User = {
+      id: sp.id,
+      name: sp.name,
+      email: sp.email,
+      role: sp.role,
+      companyName: 'NexLeads Agency',
+      avatar: sp.avatar
+    };
+    currentUser.value = demoUser;
+    currentSalesperson.value = demoUser.name;
+    localStorage.setItem('nexleads_auth_user', JSON.stringify(demoUser));
+    confetti({ particleCount: 40, spread: 50 });
+  }
+
+  function logoutUser() {
+    currentUser.value = null;
+    localStorage.removeItem('nexleads_auth_user');
+  }
 
   // --- Fetch Directly from MongoDB Database ---
   async function fetchAllFromDB() {
@@ -70,10 +155,17 @@ export const useCRMStore = defineStore('crm', () => {
   }
 
   async function initStore() {
-    // Clear any residual localStorage completely
-    localStorage.removeItem('nexleads_crm_leads');
-    localStorage.removeItem('nexleads_crm_activities');
-    localStorage.removeItem('nexleads_crm_salespersons');
+    // Check for existing session
+    const savedUser = localStorage.getItem('nexleads_auth_user');
+    if (savedUser) {
+      try {
+        const parsed = JSON.parse(savedUser);
+        currentUser.value = parsed;
+        currentSalesperson.value = parsed.name || 'Ali Raza';
+      } catch (e) {
+        localStorage.removeItem('nexleads_auth_user');
+      }
+    }
 
     await fetchAllFromDB();
   }
@@ -555,6 +647,16 @@ export const useCRMStore = defineStore('crm', () => {
   }
 
   return {
+    // Auth State & Actions
+    currentUser,
+    isAuthenticated,
+    authError,
+    isAuthLoading,
+    loginUser,
+    registerUser,
+    loginDemoUser,
+    logoutUser,
+
     // State
     leads,
     salespersons,

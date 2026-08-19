@@ -15,7 +15,8 @@ import {
   ShieldAlert,
   Users,
   Building2,
-  Calendar
+  Calendar,
+  LogOut
 } from 'lucide-vue-next';
 
 const store = useCRMStore();
@@ -260,17 +261,39 @@ const queuesList = computed(() => [
       </div>
     </div>
 
-    <!-- Bottom summary footer -->
-    <div class="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
-      <div class="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+    <!-- Bottom user profile & summary footer -->
+    <div class="p-3.5 border-t border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/70 space-y-2.5">
+      <!-- Active Logged In User Pill -->
+      <div class="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm">
+        <div class="flex items-center gap-2 min-w-0">
+          <img
+            :src="store.currentUser?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'"
+            class="w-7 h-7 rounded-full object-cover border border-slate-200 dark:border-slate-700 flex-shrink-0"
+          />
+          <div class="min-w-0">
+            <div class="font-bold text-xs text-slate-900 dark:text-white truncate">
+              {{ store.currentUser?.name || store.currentSalesperson }}
+            </div>
+            <div class="text-[10px] text-slate-400 truncate">
+              {{ store.currentUser?.role || 'Senior SDR' }}
+            </div>
+          </div>
+        </div>
+
+        <button
+          @click="store.logoutUser()"
+          title="Sign Out / Switch Account"
+          class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/60 transition-colors flex-shrink-0"
+        >
+          <LogOut class="w-4 h-4" />
+        </button>
+      </div>
+
+      <div class="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 px-1">
         <span>Active Pipeline</span>
         <span class="font-bold text-slate-900 dark:text-slate-100">
           ${{ store.leads.reduce((acc, l) => acc + (l.dealValue || 0), 0).toLocaleString() }}
         </span>
-      </div>
-      <div class="text-[11px] text-slate-400 dark:text-slate-500 mt-1 flex items-center gap-1">
-        <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
-        <span>Auto-sync enabled</span>
       </div>
     </div>
   </aside>

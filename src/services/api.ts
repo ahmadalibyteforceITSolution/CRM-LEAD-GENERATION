@@ -1,8 +1,43 @@
-import { Lead, ActivityHistoryItem, Salesperson } from '../types/crm';
+import { Lead, ActivityHistoryItem, Salesperson, User } from '../types/crm';
 
 const API_BASE = '/api';
 
 export const apiService = {
+  // Authentication
+  async login(email: string, password: string): Promise<{ success: boolean; user?: User; token?: string; error?: string }> {
+    try {
+      const res = await fetch(`${API_BASE}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        return { success: false, error: data.error || 'Login failed' };
+      }
+      return data;
+    } catch (err: any) {
+      return { success: false, error: 'Network error connecting to auth server' };
+    }
+  },
+
+  async register(userData: { name: string; email: string; password: string; role?: string; companyName?: string }): Promise<{ success: boolean; user?: User; token?: string; error?: string }> {
+    try {
+      const res = await fetch(`${API_BASE}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(userData)
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        return { success: false, error: data.error || 'Registration failed' };
+      }
+      return data;
+    } catch (err: any) {
+      return { success: false, error: 'Network error connecting to auth server' };
+    }
+  },
+
   // Check backend health
   async checkHealth() {
     try {

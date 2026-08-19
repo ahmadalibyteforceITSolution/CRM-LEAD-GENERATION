@@ -54,6 +54,22 @@ export interface Salesperson {
   activeLeadsCount?: number;
 }
 
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  avatar?: string;
+  role: string;
+  companyName?: string;
+  createdAt?: string;
+}
+
+export interface AuthState {
+  user: User | null;
+  isAuthenticated: boolean;
+  token?: string | null;
+}
+
 export interface ColdCallLog {
   id: string;
   leadId: string;

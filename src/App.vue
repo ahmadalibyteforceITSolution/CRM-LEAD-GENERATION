@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
 import { useCRMStore } from '@/stores/crmStore';
+import AuthView from '@/components/auth/AuthView.vue';
 import Header from '@/components/layout/Header.vue';
 import Sidebar from '@/components/layout/Sidebar.vue';
 import RuleComplianceBar from '@/components/layout/RuleComplianceBar.vue';
@@ -22,7 +23,11 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="h-screen w-screen flex flex-col overflow-hidden bg-slate-100/50 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 select-none">
+  <!-- Login / Sign Up Screen when unauthenticated -->
+  <AuthView v-if="!store.isAuthenticated" />
+
+  <!-- Authenticated CRM App Workspace -->
+  <div v-else class="h-screen w-screen flex flex-col overflow-hidden bg-slate-100/50 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 select-none">
     <!-- Mandatory 5 Golden Rules Compliance Top Banner -->
     <RuleComplianceBar />
 
