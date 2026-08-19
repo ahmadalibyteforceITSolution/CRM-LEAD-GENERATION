@@ -44,64 +44,52 @@ export const useCRMStore = defineStore('crm', () => {
   const isDetailDrawerOpen = ref(false);
   const activeLeadId = ref<string | null>(null);
 
-  // Initialize from API / MongoDB or LocalStorage (Clean real database mode)
+  // Initialize from MongoDB Atlas Database
   async function initStore() {
+    leads.value = [];
+    activities.value = [];
+
+    // 1. Check if localStorage has prior saved real data
     const savedLeads = localStorage.getItem('nexleads_crm_leads');
-    const savedSalespersons = localStorage.getItem('nexleads_crm_salespersons');
     const savedActivities = localStorage.getItem('nexleads_crm_activities');
 
-    if (savedLeads !== null) {
+    if (savedLeads) {
       try {
         leads.value = JSON.parse(savedLeads);
       } catch {
         leads.value = [];
       }
-    } else {
-      leads.value = [];
-      saveLeads();
     }
 
-    if (savedSalespersons !== null) {
-      try {
-        salespersons.value = JSON.parse(savedSalespersons);
-      } catch {
-        salespersons.value = INITIAL_SALESPERSONS;
-      }
-    } else {
-      salespersons.value = INITIAL_SALESPERSONS;
-      saveSalespersons();
-    }
-
-    if (savedActivities !== null) {
+    if (savedActivities) {
       try {
         activities.value = JSON.parse(savedActivities);
       } catch {
         activities.value = [];
       }
-    } else {
-      activities.value = [];
-      saveActivities();
     }
 
-    // Connect to MongoDB Atlas backend
+    salespersons.value = INITIAL_SALESPERSONS;
+
+    // 2. Fetch live data directly from MongoDB Atlas
     try {
       const health = await apiService.checkHealth();
       if (health.status === 'ok') {
         isDbConnected.value = true;
-        const remoteLeads = await apiService.fetchLeads();
-        if (remoteLeads && Array.isArray(remoteLeads)) {
-          leads.value = remoteLeads;
+        const dbLeads = await apiService.fetchLeads();
+        if (dbLeads && Array.isArray(dbLeads)) {
+          leads.value = dbLeads;
           saveLeads();
         }
 
-        const remoteActivities = await apiService.fetchActivities();
-        if (remoteActivities && Array.isArray(remoteActivities)) {
-          activities.value = remoteActivities;
+        const dbActivities = await apiService.fetchActivities();
+        if (dbActivities && Array.isArray(dbActivities)) {
+          activities.value = dbActivities;
           saveActivities();
         }
       }
-    } catch {
-      // Offline / LocalStorage mode
+    } catch (e) {
+      console.log('Using local database storage');
     }
   }
 

@@ -12,24 +12,25 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://test:test@cluster0.mongodb.net/crm_lead_gen?retryWrites=true&w=majority';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://ahmedalihafeez25_db_user:%40Sublime12345@cluster0.oe0inne.mongodb.net/crm_lead_gen?retryWrites=true&w=majority';
 
 let isConnected = false;
 
 async function connectDB() {
-  if (isConnected || mongoose.connection.readyState >= 1) return;
+  if (isConnected || mongoose.connection.readyState === 1) return;
   try {
     await mongoose.connect(MONGODB_URI, {
       bufferCommands: false,
+      serverSelectionTimeoutMS: 5000
     });
     isConnected = true;
-    console.log('MongoDB Atlas Connected Successfully');
+    console.log('✅ Connected to MongoDB Atlas (crm_lead_gen)');
   } catch (error) {
-    console.error('MongoDB Connection Error:', error.message);
+    console.error('MongoDB Atlas Connection Error:', error.message);
   }
 }
 
-// Middleware to ensure DB connection
+// Ensure DB connected on each request
 app.use(async (req, res, next) => {
   await connectDB();
   next();
@@ -39,13 +40,14 @@ app.use(async (req, res, next) => {
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
-    database: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected',
+    database: mongoose.connection.readyState === 1 ? 'Connected' : 'Connecting/Offline',
+    databaseName: mongoose.connection.name || 'crm_lead_gen',
     timestamp: new Date().toISOString()
   });
 });
 
 // --- LEADS ENDPOINTS ---
-// GET all leads
+// GET all real leads from MongoDB
 app.get('/api/leads', async (req, res) => {
   try {
     const leads = await LeadModel.find().sort({ createdAt: -1 });
@@ -55,18 +57,25 @@ app.get('/api/leads', async (req, res) => {
   }
 });
 
-// POST create lead
+// POST create real lead in MongoDB
 app.post('/api/leads', async (req, res) => {
   try {
-    const newLead = new LeadModel(req.body);
-    await newLead.save();
+    const leadData = req.body;
+    if (!leadData.id) {
+      leadData.id = 'lead-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7);
+    }
+    const newLead = await LeadModel.findOneAndUpdate(
+      { id: leadData.id },
+      leadData,
+      { new: true, upsert: true }
+    );
     res.status(201).json(newLead);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
 });
 
-// PUT update lead
+// PUT update lead in MongoDB
 app.put('/api/leads/:id', async (req, res) => {
   try {
     const updatedLead = await LeadModel.findOneAndUpdate(
@@ -80,19 +89,19 @@ app.put('/api/leads/:id', async (req, res) => {
   }
 });
 
-// DELETE lead
+// DELETE lead from MongoDB
 app.delete('/api/leads/:id', async (req, res) => {
   try {
     await LeadModel.findOneAndDelete({ id: req.params.id });
     await ActivityModel.deleteMany({ leadId: req.params.id });
-    res.json({ message: 'Lead and associated activities deleted successfully' });
+    res.json({ success: true, message: 'Lead and activities deleted from database' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// --- ACTIVITIES ENDPOINTS ---
-// GET activities
+// --- ACTIVITIES & LOGS ENDPOINTS ---
+// GET chronological activities from MongoDB
 app.get('/api/activities', async (req, res) => {
   try {
     const { leadId } = req.query;
@@ -104,11 +113,18 @@ app.get('/api/activities', async (req, res) => {
   }
 });
 
-// POST add activity
+// POST save activity / call / WhatsApp record into MongoDB
 app.post('/api/activities', async (req, res) => {
   try {
-    const newActivity = new ActivityModel(req.body);
-    await newActivity.save();
+    const actData = req.body;
+    if (!actData.id) {
+      actData.id = 'act-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7);
+    }
+    const newActivity = await ActivityModel.findOneAndUpdate(
+      { id: actData.id },
+      actData,
+      { new: true, upsert: true }
+    );
     res.status(201).json(newActivity);
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -125,35 +141,10 @@ app.get('/api/salespersons', async (req, res) => {
   }
 });
 
-// Bulk sync endpoint
-app.post('/api/sync', async (req, res) => {
-  try {
-    const { leads, activities, salespersons } = req.body;
-    if (leads && Array.isArray(leads)) {
-      for (const lead of leads) {
-        await LeadModel.findOneAndUpdate({ id: lead.id }, lead, { upsert: true });
-      }
-    }
-    if (activities && Array.isArray(activities)) {
-      for (const act of activities) {
-        await ActivityModel.findOneAndUpdate({ id: act.id }, act, { upsert: true });
-      }
-    }
-    if (salespersons && Array.isArray(salespersons)) {
-      for (const sp of salespersons) {
-        await SalespersonModel.findOneAndUpdate({ id: sp.id }, sp, { upsert: true });
-      }
-    }
-    res.json({ success: true, message: 'Database synced successfully with MongoDB' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
 const PORT = process.env.PORT || 5000;
 if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
   app.listen(PORT, () => {
-    console.log(`Backend CRM API Server running on port ${PORT}`);
+    console.log(`Backend CRM API Server connected and listening on port ${PORT}`);
   });
 }
 
