@@ -14,6 +14,7 @@ import {
 } from '../types/crm';
 import { INITIAL_LEADS, INITIAL_SALESPERSONS, INITIAL_ACTIVITIES } from '../data/seedData';
 import { isFollowUpDueToday, isFollowUpOverdue, isFollowUpUpcoming, formatDate } from '../utils/dateUtils';
+import { apiService } from '../services/api';
 import confetti from 'canvas-confetti';
 
 export const useCRMStore = defineStore('crm', () => {
@@ -21,6 +22,7 @@ export const useCRMStore = defineStore('crm', () => {
   const leads = ref<Lead[]>([]);
   const salespersons = ref<Salesperson[]>([]);
   const activities = ref<ActivityHistoryItem[]>([]);
+  const isDbConnected = ref<boolean>(false);
 
   // Current active user / salesperson
   const currentSalesperson = ref<string>('Ali Raza');
@@ -42,24 +44,24 @@ export const useCRMStore = defineStore('crm', () => {
   const isDetailDrawerOpen = ref(false);
   const activeLeadId = ref<string | null>(null);
 
-  // Initialize from LocalStorage or seed data
-  function initStore() {
+  // Initialize from API / MongoDB or LocalStorage (Clean real database mode)
+  async function initStore() {
     const savedLeads = localStorage.getItem('nexleads_crm_leads');
     const savedSalespersons = localStorage.getItem('nexleads_crm_salespersons');
     const savedActivities = localStorage.getItem('nexleads_crm_activities');
 
-    if (savedLeads) {
+    if (savedLeads !== null) {
       try {
         leads.value = JSON.parse(savedLeads);
       } catch {
-        leads.value = INITIAL_LEADS;
+        leads.value = [];
       }
     } else {
-      leads.value = INITIAL_LEADS;
+      leads.value = [];
       saveLeads();
     }
 
-    if (savedSalespersons) {
+    if (savedSalespersons !== null) {
       try {
         salespersons.value = JSON.parse(savedSalespersons);
       } catch {
@@ -70,16 +72,54 @@ export const useCRMStore = defineStore('crm', () => {
       saveSalespersons();
     }
 
-    if (savedActivities) {
+    if (savedActivities !== null) {
       try {
         activities.value = JSON.parse(savedActivities);
       } catch {
-        activities.value = INITIAL_ACTIVITIES;
+        activities.value = [];
       }
     } else {
-      activities.value = INITIAL_ACTIVITIES;
+      activities.value = [];
       saveActivities();
     }
+
+    // Connect to MongoDB Atlas backend
+    try {
+      const health = await apiService.checkHealth();
+      if (health.status === 'ok') {
+        isDbConnected.value = true;
+        const remoteLeads = await apiService.fetchLeads();
+        if (remoteLeads && Array.isArray(remoteLeads)) {
+          leads.value = remoteLeads;
+          saveLeads();
+        }
+
+        const remoteActivities = await apiService.fetchActivities();
+        if (remoteActivities && Array.isArray(remoteActivities)) {
+          activities.value = remoteActivities;
+          saveActivities();
+        }
+      }
+    } catch {
+      // Offline / LocalStorage mode
+    }
+  }
+
+  function clearAllData() {
+    leads.value = [];
+    activities.value = [];
+    saveLeads();
+    saveActivities();
+  }
+
+  function loadSampleData() {
+    leads.value = JSON.parse(JSON.stringify(INITIAL_LEADS));
+    activities.value = JSON.parse(JSON.stringify(INITIAL_ACTIVITIES));
+    salespersons.value = JSON.parse(JSON.stringify(INITIAL_SALESPERSONS));
+    saveLeads();
+    saveActivities();
+    saveSalespersons();
+    apiService.syncDatabase(leads.value, activities.value, salespersons.value).catch(() => {});
   }
 
   function saveLeads() {
@@ -267,6 +307,7 @@ export const useCRMStore = defineStore('crm', () => {
 
     leads.value.unshift(newLead);
     saveLeads();
+    apiService.saveLead(newLead).catch(() => {});
 
     // Log Activity for lead addition
     addActivityItem({
@@ -306,6 +347,7 @@ export const useCRMStore = defineStore('crm', () => {
     }
 
     saveLeads();
+    apiService.updateLead(id, updates).catch(() => {});
   }
 
   function updateLeadStage(id: string, newStage: PipelineStage) {
@@ -341,6 +383,7 @@ export const useCRMStore = defineStore('crm', () => {
     }
 
     saveLeads();
+    apiService.updateLead(id, { stage: newStage }).catch(() => {});
   }
 
   function deleteLead(id: string) {
@@ -352,6 +395,7 @@ export const useCRMStore = defineStore('crm', () => {
     }
     saveLeads();
     saveActivities();
+    apiService.deleteLead(id).catch(() => {});
   }
 
   // --- Activities & Logging ---
@@ -363,6 +407,7 @@ export const useCRMStore = defineStore('crm', () => {
     };
     activities.value.unshift(newActivity);
     saveActivities();
+    apiService.saveActivity(newActivity).catch(() => {});
   }
 
   // Log Cold Call
@@ -618,6 +663,8 @@ export const useCRMStore = defineStore('crm', () => {
     openQuickCall,
     openQuickWhatsApp,
     resetToDemoData,
+    clearAllData,
+    loadSampleData,
     exportLeadsToCSV,
     importLeadsFromCSV
   };

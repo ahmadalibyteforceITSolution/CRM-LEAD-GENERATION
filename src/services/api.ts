@@ -1,0 +1,102 @@
+import { Lead, ActivityHistoryItem, Salesperson } from '../types/crm';
+
+const API_BASE = '/api';
+
+export const apiService = {
+  // Check backend health
+  async checkHealth() {
+    try {
+      const res = await fetch(`${API_BASE}/health`);
+      return await res.json();
+    } catch {
+      return { status: 'offline', database: 'Disconnected' };
+    }
+  },
+
+  // Leads
+  async fetchLeads(): Promise<Lead[] | null> {
+    try {
+      const res = await fetch(`${API_BASE}/leads`);
+      if (!res.ok) return null;
+      return await res.json();
+    } catch {
+      return null;
+    }
+  },
+
+  async saveLead(lead: Lead): Promise<boolean> {
+    try {
+      const res = await fetch(`${API_BASE}/leads`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(lead)
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  },
+
+  async updateLead(id: string, updates: Partial<Lead>): Promise<boolean> {
+    try {
+      const res = await fetch(`${API_BASE}/leads/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates)
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  },
+
+  async deleteLead(id: string): Promise<boolean> {
+    try {
+      const res = await fetch(`${API_BASE}/leads/${id}`, {
+        method: 'DELETE'
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  },
+
+  // Activities
+  async fetchActivities(leadId?: string): Promise<ActivityHistoryItem[] | null> {
+    try {
+      const url = leadId ? `${API_BASE}/activities?leadId=${leadId}` : `${API_BASE}/activities`;
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      return await res.json();
+    } catch {
+      return null;
+    }
+  },
+
+  async saveActivity(activity: ActivityHistoryItem): Promise<boolean> {
+    try {
+      const res = await fetch(`${API_BASE}/activities`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(activity)
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  },
+
+  // Bulk Sync with MongoDB Atlas
+  async syncDatabase(leads: Lead[], activities: ActivityHistoryItem[], salespersons: Salesperson[]): Promise<boolean> {
+    try {
+      const res = await fetch(`${API_BASE}/sync`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leads, activities, salespersons })
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  }
+};

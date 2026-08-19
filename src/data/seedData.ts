@@ -423,6 +423,20 @@ export const INITIAL_ACTIVITIES: ActivityHistoryItem[] = [
   },
   {
     id: 'act-5',
+    leadId: 'lead-4',
+    date: '17 Aug',
+    time: '03:20 PM',
+    channel: 'WhatsApp Call',
+    salesperson: 'Ali Raza',
+    attendedOrResponded: 'Answered',
+    status: 'Negotiation',
+    notes: 'Discussed luxury WhatsApp bot pricing tiers with David. Agreed on $12,000 custom setup pending final approval.',
+    nextFollowUp: 'Call 18 Aug, 4:00 PM',
+    type: 'call',
+    createdAt: '2026-08-17T15:20:00Z'
+  },
+  {
+    id: 'act-6',
     leadId: 'lead-5',
     date: '19 Aug',
     time: '09:00 AM',
@@ -434,5 +448,47 @@ export const INITIAL_ACTIVITIES: ActivityHistoryItem[] = [
     nextFollowUp: 'Onboarding 21 Aug, 10:00 AM',
     type: 'stage_change',
     createdAt: '2026-08-19T09:00:00Z'
+  },
+  {
+    id: 'act-7',
+    leadId: 'lead-7',
+    date: '14 Aug',
+    time: '04:10 PM',
+    channel: 'Cold Call',
+    salesperson: 'Michael Chang',
+    attendedOrResponded: 'No Response',
+    status: 'Call Attempted',
+    notes: 'Called main line. Receptionist transferred but line rang out without voicemail.',
+    nextFollowUp: 'Follow up 17 Aug, 12:00 PM',
+    type: 'call',
+    createdAt: '2026-08-14T16:10:00Z'
+  },
+  {
+    id: 'act-8',
+    leadId: 'lead-8',
+    date: '05 Aug',
+    time: '02:00 PM',
+    channel: 'Cold Call',
+    salesperson: 'Ali Raza',
+    attendedOrResponded: 'Answered',
+    status: 'Lost',
+    notes: 'Bob informed that HVAC marketing budgets have been frozen for the remainder of the fiscal year.',
+    nextFollowUp: 'Re-engage Q1 next year',
+    type: 'call',
+    createdAt: '2026-08-05T14:00:00Z'
+  },
+  {
+    id: 'act-9',
+    leadId: 'lead-9',
+    date: '18 Aug',
+    time: '04:30 PM',
+    channel: 'WhatsApp Chat',
+    salesperson: 'Ali Raza',
+    attendedOrResponded: 'Replied',
+    status: 'Contacted',
+    notes: 'Liam messaged inquiring about white-label capabilities. Shared brochure and scheduled follow-up for sample demonstration.',
+    nextFollowUp: 'Follow up 19 Aug, 4:45 PM',
+    type: 'whatsapp',
+    createdAt: '2026-08-18T16:30:00Z'
   }
 ];
