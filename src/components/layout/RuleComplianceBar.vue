@@ -20,26 +20,26 @@ function toggleRuleFilter() {
 </script>
 
 <template>
-  <div class="border-b border-slate-200/80 dark:border-slate-800 bg-gradient-to-r from-indigo-900 via-slate-900 to-indigo-950 text-white px-4 py-2 text-xs flex flex-wrap items-center justify-between gap-3 shadow-inner">
-    <div class="flex items-center gap-2.5 flex-wrap">
-      <div class="flex items-center gap-1.5 px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-semibold border border-indigo-500/30">
-        <Sparkles class="w-3.5 h-3.5 text-indigo-400" />
-        <span>Golden CRM Rule</span>
+  <div class="border-b border-slate-200/80 dark:border-slate-800 bg-gradient-to-r from-indigo-900 via-slate-900 to-indigo-950 text-white px-3 sm:px-4 py-2 text-[11px] sm:text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 shadow-inner">
+    <div class="flex items-center gap-2 flex-wrap">
+      <div class="flex items-center gap-1.5 px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-semibold border border-indigo-500/30 text-[10px] sm:text-xs">
+        <Sparkles class="w-3 h-3 text-indigo-400" />
+        <span>5 Golden Rules</span>
       </div>
-      <span class="text-slate-200 font-medium">
-        Every lead must have:
-        <strong class="text-white font-semibold">Assigned Person</strong> +
-        <strong class="text-white font-semibold">Lead Status</strong> +
+      <span class="text-slate-200 font-medium text-[11px] sm:text-xs">
+        Every lead:
+        <strong class="text-white font-semibold">Assigned</strong> +
+        <strong class="text-white font-semibold">Status</strong> +
         <strong class="text-white font-semibold">Last Contact</strong> +
         <strong class="text-white font-semibold">Next Action</strong> +
-        <strong class="text-white font-semibold">Follow-Up Date & Time</strong>
+        <strong class="text-white font-semibold">Follow-Up</strong>
       </span>
     </div>
 
-    <div class="flex items-center gap-3">
+    <div class="flex items-center gap-2.5 self-end sm:self-auto">
       <!-- Health meter -->
-      <div class="flex items-center gap-2 bg-slate-800/80 px-3 py-1 rounded-full border border-slate-700">
-        <div class="w-20 h-2 bg-slate-700 rounded-full overflow-hidden flex">
+      <div class="flex items-center gap-1.5 bg-slate-800/80 px-2.5 py-0.5 rounded-full border border-slate-700 text-[10px] sm:text-xs">
+        <div class="w-14 sm:w-20 h-1.5 sm:h-2 bg-slate-700 rounded-full overflow-hidden flex">
           <div
             class="h-full transition-all duration-500 rounded-full"
             :class="rate >= 90 ? 'bg-emerald-400' : rate >= 70 ? 'bg-amber-400' : 'bg-rose-400'"
@@ -47,7 +47,7 @@ function toggleRuleFilter() {
           ></div>
         </div>
         <span class="font-bold" :class="rate >= 90 ? 'text-emerald-400' : rate >= 70 ? 'text-amber-400' : 'text-rose-400'">
-          {{ rate }}% Compliant
+          {{ rate }}%
         </span>
       </div>
 

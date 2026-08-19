@@ -43,6 +43,7 @@ export const useCRMStore = defineStore('crm', () => {
   const isQuickWhatsAppModalOpen = ref(false);
   const isImportExportModalOpen = ref(false);
   const isDetailDrawerOpen = ref(false);
+  const isMobileSidebarOpen = ref(false);
   const activeLeadId = ref<string | null>(null);
 
   // --- Fetch Directly from MongoDB Database ---
@@ -575,6 +576,7 @@ export const useCRMStore = defineStore('crm', () => {
     isQuickWhatsAppModalOpen,
     isImportExportModalOpen,
     isDetailDrawerOpen,
+    isMobileSidebarOpen,
     activeLeadId,
 
     // Computed

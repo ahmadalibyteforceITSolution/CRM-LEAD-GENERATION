@@ -93,12 +93,34 @@ const queuesList = computed(() => [
 </script>
 
 <template>
-  <aside class="w-64 border-r border-slate-200 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 backdrop-blur flex flex-col justify-between h-full select-none">
+  <!-- Mobile Backdrop Overlay -->
+  <div
+    v-if="store.isMobileSidebarOpen"
+    @click="store.isMobileSidebarOpen = false"
+    class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-30 lg:hidden"
+  ></div>
+
+  <!-- Sidebar Component -->
+  <aside
+    :class="[
+      'w-64 border-r border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur flex flex-col justify-between h-full select-none z-40 transition-transform duration-300 ease-in-out',
+      'fixed inset-y-0 left-0 lg:static lg:translate-x-0',
+      store.isMobileSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'
+    ]"
+  >
     <div class="p-4 space-y-6 overflow-y-auto">
       <!-- Main Views -->
       <div>
-        <div class="px-2.5 mb-2 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-          Workspace Views
+        <div class="flex items-center justify-between px-2.5 mb-2">
+          <span class="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+            Workspace Views
+          </span>
+          <button
+            @click="store.isMobileSidebarOpen = false"
+            class="lg:hidden p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+          >
+            ✕
+          </button>
         </div>
         <nav class="space-y-1">
           <button

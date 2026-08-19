@@ -39,12 +39,23 @@ function handleResetDemo() {
 </script>
 
 <template>
-  <header class="h-16 border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur px-6 flex items-center justify-between gap-4 sticky top-0 z-20">
-    <!-- Left: Brand & Search -->
-    <div class="flex items-center gap-6 flex-1 max-w-2xl">
+  <header class="h-16 border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur px-4 sm:px-6 flex items-center justify-between gap-3 sticky top-0 z-20">
+    <!-- Left: Hamburger on Mobile + Brand & Search -->
+    <div class="flex items-center gap-3 sm:gap-6 flex-1 max-w-2xl">
+      <!-- Mobile Sidebar Toggle -->
+      <button
+        @click="store.isMobileSidebarOpen = !store.isMobileSidebarOpen"
+        class="lg:hidden p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700"
+        title="Toggle Menu"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+        </svg>
+      </button>
+
       <div class="flex items-center gap-2.5">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-md shadow-indigo-500/20">
-          <Sparkles class="w-5 h-5" />
+        <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-md shadow-indigo-500/20 flex-shrink-0">
+          <Sparkles class="w-4 h-4 sm:w-5 sm:h-5" />
         </div>
         <div>
           <div class="font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-1.5 text-base">
