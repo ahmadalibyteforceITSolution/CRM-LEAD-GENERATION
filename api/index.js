@@ -20,6 +20,15 @@ let memoryLeads = [];
 let memoryActivities = [];
 let memoryUsers = [
   {
+    id: 'user-admin',
+    name: 'SuperAdmin',
+    email: 'admin@nexleads.io',
+    password: 'password123',
+    role: 'SuperAdmin',
+    companyName: 'NexLeads Agency',
+    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80'
+  },
+  {
     id: 'user-demo-1',
     name: 'Ali Raza',
     email: 'ali.raza@nexleads.io',
