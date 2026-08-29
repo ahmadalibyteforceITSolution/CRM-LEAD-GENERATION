@@ -61,7 +61,21 @@ function handleStageChange(lead: Lead, event: Event) {
 
 function handlePriorityChange(lead: Lead, event: Event) {
   const target = event.target as HTMLSelectElement;
-  store.updateLead(lead.id, { priority: target.value as LeadPriority });
+  const newPriority = target.value as LeadPriority;
+  
+  if (newPriority === 'Not Qualified') {
+    const reason = window.prompt(`Please enter the reason why lead "${lead.name}" is Not Qualified:`);
+    if (reason === null) {
+      target.value = lead.priority;
+      return;
+    }
+    store.updateLead(lead.id, { 
+      priority: newPriority, 
+      notQualifiedReason: reason.trim() 
+    });
+  } else {
+    store.updateLead(lead.id, { priority: newPriority });
+  }
 }
 
 function handleDeleteLead(lead: Lead, event: MouseEvent) {
