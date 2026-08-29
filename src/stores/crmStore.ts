@@ -368,6 +368,7 @@ export const useCRMStore = defineStore('crm', () => {
       nextFollowUpDate: newLeadData.nextFollowUpDate || today,
       nextFollowUpTime: newLeadData.nextFollowUpTime || '14:00',
       preferredChannel: newLeadData.preferredChannel || 'Cold Call',
+      notQualifiedReason: newLeadData.notQualifiedReason || '',
       totalCalls: 0,
       totalWhatsApp: 0,
       tags: newLeadData.tags || [],

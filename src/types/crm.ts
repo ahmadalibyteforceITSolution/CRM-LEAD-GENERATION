@@ -119,7 +119,7 @@ export interface ActivityHistoryItem {
   status: PipelineStage | string;
   notes: string;
   nextFollowUp: string; // e.g. "20 Aug, 3:00 PM"
-  type: 'call' | 'whatsapp' | 'meeting' | 'note' | 'stage_change' | 'email';
+  type: 'call' | 'whatsapp' | 'meeting' | 'note' | 'stage_change' | 'email' | 'not_qualified';
   createdAt: string;
 }
 
@@ -144,6 +144,7 @@ export interface Lead {
   budgetRange?: string;
   timeline?: string;
   projectLocation?: string;
+  notQualifiedReason?: string;
 
   // Pipeline & Priority
   stage: PipelineStage;

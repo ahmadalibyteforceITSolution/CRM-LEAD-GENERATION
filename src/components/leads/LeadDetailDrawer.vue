@@ -35,7 +35,7 @@ const activities = computed(() => store.activeLeadActivities);
 const compliance = computed(() => lead.value ? store.checkLeadCompliance(lead.value) : null);
 
 // Quick Add Note / Custom Activity state
-const newActivityType = ref<'note' | 'call' | 'whatsapp' | 'meeting'>('note');
+const newActivityType = ref<'note' | 'call' | 'whatsapp' | 'meeting' | 'not_qualified'>('note');
 const newActivityNotes = ref('');
 const newActivityFollowUpDate = ref(getTodayString());
 const newActivityFollowUpTime = ref('15:00');
@@ -76,7 +76,7 @@ function handleQuickLogActivity() {
     : 'None';
 
   let channel: ContactChannel = 'Cold Call';
-  let attended: 'Answered' | 'Replied' | 'Attended' | 'Scheduled' = 'Answered';
+  let attended: 'Answered' | 'Replied' | 'Attended' | 'Scheduled' | 'Rejected' = 'Answered';
 
   if (newActivityType.value === 'whatsapp') {
     channel = 'WhatsApp Chat';
@@ -87,6 +87,9 @@ function handleQuickLogActivity() {
   } else if (newActivityType.value === 'note') {
     channel = 'Website Enquiry';
     attended = 'Attended';
+  } else if (newActivityType.value === 'not_qualified') {
+    channel = 'Cold Call';
+    attended = 'Rejected';
   }
 
   store.addActivityItem({
@@ -97,21 +100,31 @@ function handleQuickLogActivity() {
     salesperson: store.currentSalesperson,
     attendedOrResponded: attended,
     status: lead.value.stage,
-    notes: newActivityNotes.value.trim(),
+    notes: newActivityType.value === 'not_qualified' ? 'Not Qualified Reason: ' + newActivityNotes.value.trim() : newActivityNotes.value.trim(),
     nextFollowUp: nextFmt,
     type: newActivityType.value
   });
 
   // Update lead follow-up
-  if (newActivityFollowUpDate.value) {
-    store.updateLead(lead.value.id, {
+  if (lead.value) {
+    const leadUpdates: any = {
       lastContactedBy: store.currentSalesperson,
       lastContactDate: today,
       lastContactTime: nowTime,
-      nextFollowUpDate: newActivityFollowUpDate.value,
-      nextFollowUpTime: newActivityFollowUpTime.value,
-      nextAction: newActivityNotes.value.slice(0, 50)
-    });
+      nextAction: newActivityType.value === 'not_qualified' ? 'Lead marked as Not Qualified' : newActivityNotes.value.slice(0, 50)
+    };
+
+    if (newActivityFollowUpDate.value) {
+      leadUpdates.nextFollowUpDate = newActivityFollowUpDate.value;
+      leadUpdates.nextFollowUpTime = newActivityFollowUpTime.value;
+    }
+
+    if (newActivityType.value === 'not_qualified') {
+      leadUpdates.priority = 'Not Qualified';
+      leadUpdates.notQualifiedReason = newActivityNotes.value.trim();
+    }
+
+    store.updateLead(lead.value.id, leadUpdates);
   }
 
   newActivityNotes.value = '';
@@ -350,6 +363,31 @@ function closeDrawer() {
                 </select>
               </div>
 
+              <div>
+                <label class="block text-[11px] font-bold text-slate-500 mb-0.5">Priority</label>
+                <select
+                  :value="lead.priority"
+                  @change="handleFieldChange('priority', ($event.target as HTMLSelectElement).value)"
+                  class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs font-semibold cursor-pointer"
+                >
+                  <option value="Hot">🔥 Hot</option>
+                  <option value="Warm">🟡 Warm</option>
+                  <option value="Cold">🔵 Cold</option>
+                  <option value="Not Qualified">⚫ Not Qualified</option>
+                </select>
+              </div>
+
+              <div v-if="lead.priority === 'Not Qualified'">
+                <label class="block text-[11px] font-bold text-rose-500 mb-0.5">Not Qualified Reason</label>
+                <textarea
+                  :value="lead.notQualifiedReason || ''"
+                  @change="handleFieldChange('notQualifiedReason', ($event.target as HTMLTextAreaElement).value)"
+                  rows="2"
+                  placeholder="Specify why this lead is not qualified..."
+                  class="w-full bg-rose-50/20 dark:bg-rose-950/10 border border-rose-200 dark:border-rose-800 rounded-xl p-2.5 text-xs font-semibold focus:ring-2 focus:ring-rose-500/20"
+                ></textarea>
+              </div>
+
               <!-- Project & Property Details (Added with visual divider/border line) -->
               <div class="border-t border-slate-200 dark:border-slate-800 pt-3 mt-3 space-y-3">
                 <h4 class="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500">
@@ -551,13 +589,20 @@ function closeDrawer() {
                 >
                   Meeting
                 </button>
+                <button
+                  type="button"
+                  @click="newActivityType = 'not_qualified'"
+                  :class="['px-2 py-1 rounded font-semibold transition-all', newActivityType === 'not_qualified' ? 'bg-white dark:bg-slate-800 text-rose-600 shadow' : 'text-slate-500']"
+                >
+                  Not Qualified
+                </button>
               </div>
             </div>
 
             <textarea
               v-model="newActivityNotes"
               rows="2"
-              placeholder="Record call summary, WhatsApp reply, or meeting outcome..."
+              :placeholder="newActivityType === 'not_qualified' ? 'Please specify why this lead is Not Qualified...' : 'Record call summary, WhatsApp reply, or meeting outcome...'"
               class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs focus:ring-2 focus:ring-indigo-500/20"
             ></textarea>
 

@@ -60,6 +60,7 @@ const serviceRequired = ref('Lead Generation & Outreach');
 const leadSource = ref<LeadSource>('Google Maps');
 const stage = ref<PipelineStage>('New Lead');
 const priority = ref<LeadPriority>('Warm');
+const notQualifiedReason = ref('');
 const assignedSalesperson = ref(store.currentSalesperson);
 const territory = ref('North America');
 const notes = ref('');
@@ -124,6 +125,7 @@ function handleCreateLead() {
     dealValue: getNumericDealValue(selectedBudget),
     stage: stage.value,
     priority: priority.value,
+    notQualifiedReason: notQualifiedReason.value.trim(),
     assignedSalesperson: assignedSalesperson.value,
     territory: territory.value,
     notes: notes.value.trim(),
@@ -146,6 +148,7 @@ function handleCreateLead() {
   email.value = '';
   city.value = '';
   notes.value = '';
+  notQualifiedReason.value = '';
   projectType.value = 'Residential';
   budgetValueIndex.value = 1;
   areaValueIndex.value = 1;
@@ -301,6 +304,17 @@ function handleCreateLead() {
                 <option v-for="sp in store.salespersons" :key="sp.id" :value="sp.name">{{ sp.name }}</option>
               </select>
             </div>
+          </div>
+
+          <!-- Conditional Not Qualified Reason -->
+          <div v-if="priority === 'Not Qualified'">
+            <label class="block font-bold text-rose-500 mb-1">Not Qualified Reason</label>
+            <textarea
+              v-model="notQualifiedReason"
+              rows="2"
+              placeholder="Explain why this lead is not qualified..."
+              class="w-full bg-rose-50/20 dark:bg-rose-950/10 border border-rose-200 dark:border-rose-800 rounded-xl p-3 text-xs font-semibold focus:ring-2 focus:ring-rose-500/20"
+            ></textarea>
           </div>
         </div>
 

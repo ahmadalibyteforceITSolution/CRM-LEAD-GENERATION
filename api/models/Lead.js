@@ -20,6 +20,7 @@ const LeadSchema = new mongoose.Schema({
   budgetRange: { type: String, default: '' },
   timeline: { type: String, default: '' },
   projectLocation: { type: String, default: '' },
+  notQualifiedReason: { type: String, default: '' },
 
   stage: { type: String, default: 'New Lead' },
   priority: { type: String, default: 'Cold' },
