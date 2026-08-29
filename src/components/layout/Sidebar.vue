@@ -87,9 +87,9 @@ const queuesList = computed(() => [
   },
   {
     id: 'missing_rules',
-    label: 'Missing 5 Rules',
+    label: 'Not Qualified',
     icon: ShieldAlert,
-    count: store.nonCompliantLeads.length,
+    count: store.queueNotQualified.length,
     color: 'text-red-500 bg-red-500/10 dark:bg-red-500/20 border-red-500/20'
   }
 ]);

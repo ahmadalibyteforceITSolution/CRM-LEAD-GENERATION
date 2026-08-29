@@ -33,7 +33,7 @@ const queueTabs = [
   { id: 'proposals_pending', label: 'Proposals Requiring Follow-Up', icon: FileText, color: 'text-purple-500', badgeColor: 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300' },
   { id: 'not_contacted', label: 'Leads Not Contacted', icon: UserX, color: 'text-slate-500', badgeColor: 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300' },
   { id: 'no_response', label: 'Leads With No Response', icon: PhoneOff, color: 'text-yellow-600', badgeColor: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-300' },
-  { id: 'missing_rules', label: 'Missing 5-Rules', icon: ShieldAlert, color: 'text-red-500', badgeColor: 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300' }
+  { id: 'missing_rules', label: 'Not Qualified', icon: ShieldAlert, color: 'text-red-500', badgeColor: 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300' }
 ];
 
 function getQueueCount(id: string): number {
@@ -45,7 +45,7 @@ function getQueueCount(id: string): number {
     case 'proposals_pending': return store.queueProposalsRequiringFollowUp.length;
     case 'not_contacted': return store.queueNotContacted.length;
     case 'no_response': return store.queueNoResponse.length;
-    case 'missing_rules': return store.nonCompliantLeads.length;
+    case 'missing_rules': return store.queueNotQualified.length;
     default: return 0;
   }
 }
@@ -59,7 +59,7 @@ const activeQueueLeads = computed(() => {
     case 'proposals_pending': return store.queueProposalsRequiringFollowUp;
     case 'not_contacted': return store.queueNotContacted;
     case 'no_response': return store.queueNoResponse;
-    case 'missing_rules': return store.nonCompliantLeads;
+    case 'missing_rules': return store.queueNotQualified;
     default: return store.filteredLeads;
   }
 });

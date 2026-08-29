@@ -340,15 +340,6 @@ function closeDrawer() {
               </div>
 
               <div>
-                <label class="block text-[11px] font-bold text-slate-500 mb-0.5">Business / Industry</label>
-                <input
-                  :value="lead.industry"
-                  @change="handleFieldChange('industry', ($event.target as HTMLInputElement).value)"
-                  class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs font-semibold"
-                />
-              </div>
-
-              <div>
                 <label class="block text-[11px] font-bold text-slate-500 mb-0.5">Lead Source</label>
                 <select
                   :value="lead.leadSource"
@@ -462,15 +453,6 @@ function closeDrawer() {
                 </div>
               </div>
 
-              <div>
-                <label class="block text-[11px] font-bold text-slate-500 mb-0.5">Notes / Requirements</label>
-                <textarea
-                  :value="lead.notes"
-                  @change="handleFieldChange('notes', ($event.target as HTMLTextAreaElement).value)"
-                  rows="2"
-                  class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs"
-                ></textarea>
-              </div>
             </div>
           </div>
 

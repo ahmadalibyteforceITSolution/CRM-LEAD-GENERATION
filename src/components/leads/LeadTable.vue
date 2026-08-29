@@ -115,10 +115,26 @@ function handleDeleteLead(lead: Lead, event: MouseEvent) {
           </select>
         </div>
 
+        <!-- Date Range Filter -->
+        <div class="col-span-2 sm:col-span-1 flex items-center gap-1 sm:gap-1.5 bg-slate-100 dark:bg-slate-800 px-2 sm:px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs">
+          <span class="text-slate-400 font-medium text-[11px] sm:text-xs">From:</span>
+          <input
+            type="date"
+            v-model="store.startDateFilter"
+            class="bg-transparent font-semibold text-slate-800 dark:text-slate-100 focus:outline-none cursor-pointer text-xs w-24 sm:w-28"
+          />
+          <span class="text-slate-400 font-medium text-[11px] sm:text-xs">To:</span>
+          <input
+            type="date"
+            v-model="store.endDateFilter"
+            class="bg-transparent font-semibold text-slate-800 dark:text-slate-100 focus:outline-none cursor-pointer text-xs w-24 sm:w-28"
+          />
+        </div>
+
         <!-- Clear filters button -->
         <button
-          v-if="store.selectedStageFilter !== 'all' || store.selectedPriorityFilter !== 'all' || store.selectedSourceFilter !== 'all' || store.selectedSalespersonFilter !== 'all' || store.activeQueueFilter !== 'all'"
-          @click="store.selectedStageFilter = 'all'; store.selectedPriorityFilter = 'all'; store.selectedSourceFilter = 'all'; store.selectedSalespersonFilter = 'all'; store.activeQueueFilter = 'all'"
+          v-if="store.selectedStageFilter !== 'all' || store.selectedPriorityFilter !== 'all' || store.selectedSourceFilter !== 'all' || store.selectedSalespersonFilter !== 'all' || store.activeQueueFilter !== 'all' || store.startDateFilter || store.endDateFilter"
+          @click="store.selectedStageFilter = 'all'; store.selectedPriorityFilter = 'all'; store.selectedSourceFilter = 'all'; store.selectedSalespersonFilter = 'all'; store.activeQueueFilter = 'all'; store.startDateFilter = ''; store.endDateFilter = ''"
           class="col-span-2 sm:col-span-1 text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-semibold px-2 py-1 text-left sm:text-center"
         >
           Reset Filters

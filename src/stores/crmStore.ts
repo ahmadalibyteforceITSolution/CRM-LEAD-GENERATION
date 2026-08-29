@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import {
   Lead,
   Salesperson,
@@ -43,6 +43,35 @@ export const useCRMStore = defineStore('crm', () => {
   const selectedPriorityFilter = ref<string>('all');
   const selectedSourceFilter = ref<string>('all');
   const selectedSalespersonFilter = ref<string>('all');
+  const startDateFilter = ref<string>('');
+  const endDateFilter = ref<string>('');
+
+  // Reset activeQueueFilter to 'all' when a user selects a specific dropdown filter to prevent empty results
+  watch(selectedPriorityFilter, (newVal) => {
+    if (newVal !== 'all' && activeQueueFilter.value !== 'all') {
+      activeQueueFilter.value = 'all';
+    }
+  });
+  watch(selectedStageFilter, (newVal) => {
+    if (newVal !== 'all' && activeQueueFilter.value !== 'all') {
+      activeQueueFilter.value = 'all';
+    }
+  });
+  watch(selectedSourceFilter, (newVal) => {
+    if (newVal !== 'all' && activeQueueFilter.value !== 'all') {
+      activeQueueFilter.value = 'all';
+    }
+  });
+  watch(startDateFilter, (newVal) => {
+    if (newVal && activeQueueFilter.value !== 'all') {
+      activeQueueFilter.value = 'all';
+    }
+  });
+  watch(endDateFilter, (newVal) => {
+    if (newVal && activeQueueFilter.value !== 'all') {
+      activeQueueFilter.value = 'all';
+    }
+  });
 
   // Modals & Drawers
   const isCreateLeadModalOpen = ref(false);
@@ -243,6 +272,10 @@ export const useCRMStore = defineStore('crm', () => {
     return leads.value.filter(l => !checkLeadCompliance(l).isCompliant);
   });
 
+  const queueNotQualified = computed(() => {
+    return leads.value.filter(l => l.priority === 'Not Qualified');
+  });
+
   const complianceRate = computed(() => {
     if (leads.value.length === 0) return 100;
     const compliantCount = leads.value.filter(l => checkLeadCompliance(l).isCompliant).length;
@@ -259,12 +292,22 @@ export const useCRMStore = defineStore('crm', () => {
       if (activeQueueFilter.value === 'no_response' && !queueNoResponse.value.some(l => l.id === lead.id)) return false;
       if (activeQueueFilter.value === 'hot_leads' && !queueHotLeadsRequiringAction.value.some(l => l.id === lead.id)) return false;
       if (activeQueueFilter.value === 'proposals_pending' && !queueProposalsRequiringFollowUp.value.some(l => l.id === lead.id)) return false;
-      if (activeQueueFilter.value === 'missing_rules' && checkLeadCompliance(lead).isCompliant) return false;
+      if (activeQueueFilter.value === 'missing_rules' && lead.priority !== 'Not Qualified') return false;
 
       if (selectedStageFilter.value !== 'all' && lead.stage !== selectedStageFilter.value) return false;
       if (selectedPriorityFilter.value !== 'all' && lead.priority !== selectedPriorityFilter.value) return false;
       if (selectedSourceFilter.value !== 'all' && lead.leadSource !== selectedSourceFilter.value) return false;
       if (selectedSalespersonFilter.value !== 'all' && lead.assignedSalesperson !== selectedSalespersonFilter.value) return false;
+
+      // Date range filtering
+      if (startDateFilter.value) {
+        const leadDate = lead.dateLeadAdded ? lead.dateLeadAdded.substring(0, 10) : (lead.createdAt ? lead.createdAt.substring(0, 10) : '');
+        if (leadDate && leadDate < startDateFilter.value) return false;
+      }
+      if (endDateFilter.value) {
+        const leadDate = lead.dateLeadAdded ? lead.dateLeadAdded.substring(0, 10) : (lead.createdAt ? lead.createdAt.substring(0, 10) : '');
+        if (leadDate && leadDate > endDateFilter.value) return false;
+      }
 
       if (searchQuery.value.trim().length > 0) {
         const q = searchQuery.value.toLowerCase();
@@ -675,6 +718,8 @@ export const useCRMStore = defineStore('crm', () => {
     selectedPriorityFilter,
     selectedSourceFilter,
     selectedSalespersonFilter,
+    startDateFilter,
+    endDateFilter,
     isDbConnected,
     isLoading,
 
@@ -698,6 +743,7 @@ export const useCRMStore = defineStore('crm', () => {
     queueHotLeadsRequiringAction,
     queueProposalsRequiringFollowUp,
     nonCompliantLeads,
+    queueNotQualified,
     complianceRate,
     filteredLeads,
 

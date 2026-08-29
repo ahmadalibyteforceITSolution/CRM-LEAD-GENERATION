@@ -290,7 +290,7 @@ function handleDemoLogin(email: string) {
                 <input
                   v-model="loginPassword"
                   :type="showPassword ? 'text' : 'password'"
-                  placeholder="••••••••••••"
+                  placeholder="ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½"
                   required
                   class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-10 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all font-medium"
                 />
@@ -321,27 +321,7 @@ function handleDemoLogin(email: string) {
               <ArrowRight class="w-4 h-4" />
             </button>
 
-            <!-- 1-Click Demo Profiles Section -->
-            <div class="pt-4 border-t border-slate-800/80 space-y-2">
-              <span class="text-[10px] uppercase font-bold text-slate-500 tracking-wider block text-center">
-                Or 1-Click Fast Sign In as Sales Rep:
-              </span>
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <button
-                  v-for="acc in demoAccounts"
-                  :key="acc.email"
-                  type="button"
-                  @click="handleDemoLogin(acc.email)"
-                  class="p-2.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-left transition-all text-xs group flex items-center gap-2.5"
-                >
-                  <img :src="acc.avatar" class="w-7 h-7 rounded-full object-cover border border-slate-700 flex-shrink-0" />
-                  <div class="min-w-0">
-                    <div class="font-bold text-white group-hover:text-indigo-400 transition-colors truncate">{{ acc.name }}</div>
-                    <div class="text-[10px] text-slate-500 truncate">{{ acc.role }}</div>
-                  </div>
-                </button>
-              </div>
-            </div>
+            
           </form>
 
           <!-- ==================== SIGN UP FORM ==================== -->
@@ -463,7 +443,7 @@ function handleDemoLogin(email: string) {
 
         <!-- Footer terms -->
         <div class="pt-4 text-center text-[11px] text-slate-500">
-          <span>Protected by Enterprise Encryption • NexLeads Multi-Tenant CRM</span>
+          <span>Protected by Enterprise Encryption ï¿½ NexLeads Multi-Tenant CRM</span>
         </div>
       </div>
     </div>

@@ -241,26 +241,14 @@ function handleCreateLead() {
             </div>
           </div>
 
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Email Address</label>
-              <input
-                v-model="email"
-                type="email"
-                placeholder="contact@company.com"
-                class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold"
-              />
-            </div>
-
-            <div>
-              <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Business / Industry</label>
-              <input
-                v-model="industry"
-                type="text"
-                placeholder="e.g. Healthcare, Solar, Real Estate"
-                class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold"
-              />
-            </div>
+          <div>
+            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Email Address</label>
+            <input
+              v-model="email"
+              type="email"
+              placeholder="contact@company.com"
+              class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold"
+            />
           </div>
         </div>
 
@@ -418,59 +406,7 @@ function handleCreateLead() {
           </div>
         </div>
 
-        <!-- 5-Rule Mandatory Follow-Up & Next Action -->
-        <div class="p-4 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/30 border border-indigo-200/80 dark:border-indigo-800/80 space-y-3">
-          <div class="flex items-center justify-between">
-            <span class="font-bold text-indigo-950 dark:text-indigo-200 flex items-center gap-1.5 text-xs">
-              <CheckCircle2 class="w-4 h-4 text-indigo-600" />
-              <span>Mandatory 5th Rule: Next Action & Follow-Up</span>
-            </span>
-            <span class="text-[10px] text-indigo-600 font-semibold">Prevents forgotten leads</span>
-          </div>
 
-          <div>
-            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Next Action Required</label>
-            <input
-              v-model="nextAction"
-              type="text"
-              placeholder="e.g. Conduct initial cold call discovery session"
-              class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold"
-              required
-            />
-          </div>
-
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Next Follow-Up Date</label>
-              <input
-                v-model="nextFollowUpDate"
-                type="date"
-                class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold"
-                required
-              />
-            </div>
-            <div>
-              <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Next Follow-Up Time</label>
-              <input
-                v-model="nextFollowUpTime"
-                type="time"
-                class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold"
-                required
-              />
-            </div>
-          </div>
-        </div>
-
-        <!-- Notes -->
-        <div>
-          <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Notes / Requirements</label>
-          <textarea
-            v-model="notes"
-            rows="2"
-            placeholder="Special background notes, prospect pain points, or project specifications..."
-            class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-xs"
-          ></textarea>
-        </div>
 
         <!-- Footer -->
         <div class="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-3">
