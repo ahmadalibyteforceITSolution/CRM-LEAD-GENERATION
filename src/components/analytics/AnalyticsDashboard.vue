@@ -289,88 +289,68 @@ const sourceChartOptions = computed(() => ({
   cutout: '68%'
 }));
 
-// --- 3. Activity & Outreach Timeline (Line Chart) ---
+// --- 3. Monthly Leads Trend (Line Chart) ---
 const activityTimelineData = computed(() => {
-  // Aggregate recent days activity from leads added and activities
-  const daysMap = new Map<string, { calls: number; wa: number; leads: number }>();
-  
-  // Initialize last 7 days
   const today = new Date();
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(today.getDate() - i);
-    const dateStr = d.toISOString().split('T')[0];
-    daysMap.set(dateStr, { calls: 0, wa: 0, leads: 0 });
+  const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth(); // 0-indexed
+  
+  // Get number of days in the current month
+  const numDays = new Date(currentYear, currentMonth + 1, 0).getDate();
+  
+  // Initialize days map (1 to numDays)
+  const daysMap = new Map<number, number>();
+  for (let d = 1; d <= numDays; d++) {
+    daysMap.set(d, 0);
   }
 
-  // Populate from activities
-  store.activities.forEach(act => {
-    if (act.date && daysMap.has(act.date)) {
-      const entry = daysMap.get(act.date)!;
-      if (act.channel === 'Cold Call') entry.calls++;
-      if (act.channel === 'WhatsApp Chat' || act.channel === 'WhatsApp Call') entry.wa++;
-    }
-  });
-
-  // Populate leads added
+  // Populate leads added for this month
   filteredLeads.value.forEach(l => {
-    if (l.dateLeadAdded && daysMap.has(l.dateLeadAdded)) {
-      daysMap.get(l.dateLeadAdded)!.leads++;
+    if (l.dateLeadAdded) {
+      const parts = l.dateLeadAdded.split('-');
+      if (parts.length === 3) {
+        const y = Number(parts[0]);
+        const m = Number(parts[1]);
+        const d = Number(parts[2]);
+        if (y === currentYear && (m - 1) === currentMonth) {
+          if (daysMap.has(d)) {
+            daysMap.set(d, daysMap.get(d)! + 1);
+          }
+        }
+      }
+    } else if (l.createdAt) {
+      const date = new Date(l.createdAt);
+      if (date.getFullYear() === currentYear && date.getMonth() === currentMonth) {
+        const d = date.getDate();
+        if (daysMap.has(d)) {
+          daysMap.set(d, daysMap.get(d)! + 1);
+        }
+      }
     }
   });
 
   const labels: string[] = [];
-  const callsData: number[] = [];
-  const waData: number[] = [];
   const leadsData: number[] = [];
 
-  daysMap.forEach((val, key) => {
-    const [year, month, day] = key.split('-');
-    const dateObj = new Date(Number(year), Number(month) - 1, Number(day));
-    labels.push(dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
-    callsData.push(val.calls);
-    waData.push(val.wa);
-    leadsData.push(val.leads);
-  });
+  for (let d = 1; d <= numDays; d++) {
+    labels.push(String(d));
+    leadsData.push(daysMap.get(d) || 0);
+  }
 
   return {
     labels,
     datasets: [
       {
-        label: 'Calls Logged',
-        data: callsData,
-        borderColor: '#6366f1',
-        backgroundColor: 'rgba(99, 102, 241, 0.15)',
-        borderWidth: 2.5,
-        tension: 0.35,
-        fill: true,
-        pointBackgroundColor: '#6366f1',
-        pointRadius: 4,
-        pointHoverRadius: 6
-      },
-      {
-        label: 'WhatsApp Outreach',
-        data: waData,
-        borderColor: '#10b981',
-        backgroundColor: 'rgba(16, 185, 129, 0.15)',
-        borderWidth: 2.5,
-        tension: 0.35,
-        fill: true,
-        pointBackgroundColor: '#10b981',
-        pointRadius: 4,
-        pointHoverRadius: 6
-      },
-      {
         label: 'New Leads Added',
         data: leadsData,
         borderColor: '#f59e0b',
-        backgroundColor: 'rgba(245, 158, 11, 0.1)',
-        borderWidth: 2,
+        backgroundColor: 'rgba(245, 158, 11, 0.15)',
+        borderWidth: 2.5,
         tension: 0.35,
-        borderDash: [4, 4],
-        fill: false,
+        fill: true,
         pointBackgroundColor: '#f59e0b',
-        pointRadius: 3
+        pointRadius: 3,
+        pointHoverRadius: 5
       }
     ]
   };
@@ -736,18 +716,18 @@ const repComparisonChartOptions = computed(() => ({
 
     <!-- Visual Charts Row 2: Outreach Velocity Timeline & Priority Qualification -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
-      <!-- 7-Day Outreach & Activity Momentum (Line Chart) - 7 Cols -->
+      <!-- Monthly New Leads Trend (Line Chart) - 7 Cols -->
       <div class="lg:col-span-7 p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between space-y-3">
         <div class="flex items-center justify-between">
           <div>
             <h3 class="font-extrabold text-xs text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
-              <Activity class="w-4 h-4 text-emerald-500" />
-              <span>Outreach Velocity & Touchpoints Timeline</span>
+              <Activity class="w-4 h-4 text-indigo-500" />
+              <span>Monthly New Leads Trend</span>
             </h3>
-            <p class="text-[11px] text-slate-400 mt-0.5">Calls, WhatsApp engagements, and new lead creation</p>
+            <p class="text-[11px] text-slate-400 mt-0.5">Day-by-day visualization of new leads added to the database this month</p>
           </div>
-          <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
-            Last 7 Days
+          <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
+            This Month
           </span>
         </div>
 

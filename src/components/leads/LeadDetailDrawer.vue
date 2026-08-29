@@ -132,6 +132,23 @@ function handleQuickLogActivity() {
 
 function handleFieldChange(field: string, value: any) {
   if (lead.value) {
+    if (field === 'assignedSalesperson') {
+      const confirmTransfer = confirm(`Are you sure you want to transfer lead "${lead.value.name}" to salesperson "${value}"?`);
+      if (!confirmTransfer) {
+        // Revert select dropdown value in the DOM
+        const selectEl = document.querySelector('select[value="' + lead.value.assignedSalesperson + '"]') as HTMLSelectElement;
+        if (selectEl) {
+          selectEl.value = lead.value.assignedSalesperson;
+        }
+        // Force reactivity updates
+        const currentId = store.activeLeadId;
+        store.activeLeadId = '';
+        setTimeout(() => {
+          store.activeLeadId = currentId;
+        }, 10);
+        return;
+      }
+    }
     store.updateLead(lead.value.id, { [field]: value });
   }
 }

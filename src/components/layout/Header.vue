@@ -73,6 +73,7 @@ function handleResetDemo() {
 
       <!-- Add Lead CTA button on Mobile (top row) -->
       <button
+        v-if="store.currentUser?.role === 'SuperAdmin' || store.currentUser?.role === 'Admin'"
         @click="handleOpenNewLead"
         class="sm:hidden inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/30 active:scale-95 transition-all flex-shrink-0"
       >
@@ -212,6 +213,7 @@ function handleResetDemo() {
 
         <!-- Desktop Add Lead Button -->
         <button
+          v-if="store.currentUser?.role === 'SuperAdmin' || store.currentUser?.role === 'Admin'"
           @click="handleOpenNewLead"
           class="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/30 active:scale-95 transition-all"
         >
