@@ -123,6 +123,58 @@ function handleFieldChange(field: string, value: any) {
   }
 }
 
+const budgetOptions = ['0.5-1m', '1m-2m', '2m-3m', '3m-4m range'];
+const areaOptions = ['700-1000sq.feet', '1000-2000 sq.ft', '2000-3000 sq.ft', 'above 3000 sq.ft'];
+const timelineOptions = ['Immediately', '0-1 month', '1-2 month'];
+
+const budgetIndex = computed({
+  get: () => {
+    const val = lead.value?.budgetRange || '1m-2m';
+    const idx = budgetOptions.indexOf(val);
+    return idx !== -1 ? idx : 1;
+  },
+  set: (idx: number) => {
+    if (lead.value) {
+      const budgetVal = budgetOptions[idx];
+      store.updateLead(lead.value.id, { budgetRange: budgetVal, dealValue: getNumericDealValue(budgetVal) });
+    }
+  }
+});
+
+const areaIndex = computed({
+  get: () => {
+    const val = lead.value?.areaSize || '';
+    const idx = areaOptions.indexOf(val);
+    return idx !== -1 ? idx : 1;
+  },
+  set: (idx: number) => {
+    if (lead.value) {
+      store.updateLead(lead.value.id, { areaSize: areaOptions[idx] });
+    }
+  }
+});
+
+const timelineIndex = computed({
+  get: () => {
+    const val = lead.value?.timeline || '';
+    const idx = timelineOptions.indexOf(val);
+    return idx !== -1 ? idx : 0;
+  },
+  set: (idx: number) => {
+    if (lead.value) {
+      store.updateLead(lead.value.id, { timeline: timelineOptions[idx] });
+    }
+  }
+});
+
+function getNumericDealValue(budget: string): number {
+  if (budget === '0.5-1m') return 750000;
+  if (budget === '1m-2m') return 1500000;
+  if (budget === '2m-3m') return 2500000;
+  if (budget === '3m-4m range') return 3500000;
+  return 0;
+}
+
 function closeDrawer() {
   store.isDetailDrawerOpen = false;
 }
@@ -327,25 +379,117 @@ function closeDrawer() {
                 />
               </div>
 
-              <div class="grid grid-cols-2 gap-2">
-                <div>
-                  <label class="block text-[11px] font-bold text-slate-500 mb-0.5">Lead Source</label>
-                  <select
-                    :value="lead.leadSource"
-                    @change="handleFieldChange('leadSource', ($event.target as HTMLSelectElement).value)"
-                    class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs font-semibold cursor-pointer"
-                  >
-                    <option v-for="src in allSources" :key="src" :value="src">{{ src }}</option>
-                  </select>
+              <div>
+                <label class="block text-[11px] font-bold text-slate-500 mb-0.5">Lead Source</label>
+                <select
+                  :value="lead.leadSource"
+                  @change="handleFieldChange('leadSource', ($event.target as HTMLSelectElement).value)"
+                  class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs font-semibold cursor-pointer"
+                >
+                  <option v-for="src in allSources" :key="src" :value="src">{{ src }}</option>
+                </select>
+              </div>
+
+              <!-- Project & Property Details (Added with visual divider/border line) -->
+              <div class="border-t border-slate-200 dark:border-slate-800 pt-3 mt-3 space-y-3">
+                <h4 class="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                  Project & Property Details
+                </h4>
+
+                <div class="grid grid-cols-2 gap-2">
+                  <div>
+                    <label class="block text-[11px] font-bold text-slate-500 mb-0.5">Project Type</label>
+                    <select
+                      :value="lead.projectType || 'Other'"
+                      @change="handleFieldChange('projectType', ($event.target as HTMLSelectElement).value)"
+                      class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs font-semibold cursor-pointer"
+                    >
+                      <option value="Residential">Residential</option>
+                      <option value="Commercial">Commercial</option>
+                      <option value="Office">Office</option>
+                      <option value="Saloon">Saloon</option>
+                      <option value="Restaurant">Restaurant</option>
+                      <option value="Home">Home</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-[11px] font-bold text-slate-500 mb-0.5">Project Location</label>
+                    <input
+                      :value="lead.projectLocation || ''"
+                      @change="handleFieldChange('projectLocation', ($event.target as HTMLInputElement).value)"
+                      placeholder="e.g. Canal Road, Lahore"
+                      class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs font-semibold"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label class="block text-[11px] font-bold text-slate-500 mb-0.5">Estimated Deal ($)</label>
-                  <input
-                    type="number"
-                    :value="lead.dealValue"
-                    @change="handleFieldChange('dealValue', Number(($event.target as HTMLInputElement).value))"
-                    class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs font-mono font-semibold"
-                  />
+
+                <!-- Sliders for Area, Budget, and Timeline -->
+                <div class="space-y-3 pt-1">
+                  <!-- Area Size Slider -->
+                  <div class="space-y-1 p-2.5 bg-slate-50/50 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800/60">
+                    <div class="flex items-center justify-between text-xs font-bold">
+                      <span class="text-slate-500 text-[11px]">Area / Size</span>
+                      <span class="text-indigo-600 dark:text-indigo-400 font-extrabold text-[11px]">{{ lead.areaSize || 'Not specified' }}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="3"
+                      step="1"
+                      v-model.number="areaIndex"
+                      class="w-full h-1.5 accent-indigo-600 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer"
+                    />
+                    <div class="flex justify-between text-[9px] text-slate-400 dark:text-slate-500 font-bold px-0.5">
+                      <span>700 sq.ft</span>
+                      <span>1000</span>
+                      <span>2000</span>
+                      <span>3000+</span>
+                    </div>
+                  </div>
+
+                  <!-- Budget Range Slider -->
+                  <div class="space-y-1 p-2.5 bg-slate-50/50 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800/60">
+                    <div class="flex items-center justify-between text-xs font-bold">
+                      <span class="text-slate-500 text-[11px]">Budget Range</span>
+                      <span class="text-indigo-600 dark:text-indigo-400 font-extrabold text-[11px]">{{ lead.budgetRange || 'Not specified' }}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="3"
+                      step="1"
+                      v-model.number="budgetIndex"
+                      class="w-full h-1.5 accent-indigo-600 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer"
+                    />
+                    <div class="flex justify-between text-[9px] text-slate-400 dark:text-slate-500 font-bold px-0.5">
+                      <span>0.5m</span>
+                      <span>1m</span>
+                      <span>2m</span>
+                      <span>3m-4m</span>
+                    </div>
+                  </div>
+
+                  <!-- Timeline Slider -->
+                  <div class="space-y-1 p-2.5 bg-slate-50/50 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800/60">
+                    <div class="flex items-center justify-between text-xs font-bold">
+                      <span class="text-slate-500 text-[11px]">Timeline</span>
+                      <span class="text-indigo-600 dark:text-indigo-400 font-extrabold text-[11px]">{{ lead.timeline || 'Not specified' }}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="2"
+                      step="1"
+                      v-model.number="timelineIndex"
+                      class="w-full h-1.5 accent-indigo-600 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer"
+                    />
+                    <div class="flex justify-between text-[9px] text-slate-400 dark:text-slate-500 font-bold px-0.5">
+                      <span>Immediate</span>
+                      <span>0-1 mo</span>
+                      <span>1-2 mo</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 

@@ -15,6 +15,11 @@ const LeadSchema = new mongoose.Schema({
   dateLeadAdded: { type: String, default: () => new Date().toISOString().split('T')[0] },
   notes: { type: String, default: '' },
   dealValue: { type: Number, default: 0 },
+  projectType: { type: String, default: 'Other' },
+  areaSize: { type: String, default: '' },
+  budgetRange: { type: String, default: '' },
+  timeline: { type: String, default: '' },
+  projectLocation: { type: String, default: '' },
 
   stage: { type: String, default: 'New Lead' },
   priority: { type: String, default: 'Cold' },

@@ -178,7 +178,7 @@ function handleDeleteLead(lead: Lead, event: MouseEvent) {
 
           <div class="flex items-center gap-1.5 flex-shrink-0">
             <span v-if="lead.dealValue" class="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950 px-1.5 py-0.5 rounded border border-emerald-200/80">
-              ${{ lead.dealValue.toLocaleString() }}
+              Rs. {{ lead.dealValue.toLocaleString() }}
             </span>
             <PriorityBadge :priority="lead.priority" size="sm" />
           </div>
@@ -318,12 +318,17 @@ function handleDeleteLead(lead: Lead, event: MouseEvent) {
                   <div class="font-bold text-slate-900 dark:text-white text-xs group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors flex items-center gap-1.5">
                     <span>{{ lead.name }}</span>
                     <span v-if="lead.dealValue" class="text-[10px] font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/80 px-1 rounded">
-                      ${{ lead.dealValue.toLocaleString() }}
+                      Rs. {{ lead.dealValue.toLocaleString() }}
                     </span>
                   </div>
                   <div class="text-[11px] text-slate-500 flex items-center gap-1">
                     <Building class="w-3 h-3 text-slate-400" />
                     <span class="font-medium text-slate-700 dark:text-slate-300">{{ lead.companyName || 'Individual' }}</span>
+                  </div>
+                  <div v-if="lead.projectType || lead.areaSize || lead.budgetRange" class="flex flex-wrap gap-1 mt-1 text-[10px] font-semibold">
+                    <span v-if="lead.projectType" class="px-1.5 py-0.2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded border border-slate-200/50 dark:border-slate-700/50">{{ lead.projectType }}</span>
+                    <span v-if="lead.areaSize" class="px-1.5 py-0.2 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 rounded border border-indigo-200/30">{{ lead.areaSize }}</span>
+                    <span v-if="lead.budgetRange" class="px-1.5 py-0.2 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 rounded border border-emerald-200/30">{{ lead.budgetRange }}</span>
                   </div>
                 </div>
               </div>

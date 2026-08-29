@@ -139,6 +139,11 @@ export interface Lead {
   dateLeadAdded: string;
   notes: string;
   dealValue?: number;
+  projectType?: string;
+  areaSize?: string;
+  budgetRange?: string;
+  timeline?: string;
+  projectLocation?: string;
 
   // Pipeline & Priority
   stage: PipelineStage;

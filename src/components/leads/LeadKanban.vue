@@ -102,10 +102,8 @@ function moveToNextStage(lead: Lead, event: MouseEvent) {
           <span>11-Stage Deal Pipeline</span>
           <span class="text-[11px] font-normal text-slate-500 hidden md:inline">• Drag cards or use quick controls</span>
         </h2>
-      </div>
-
-      <div class="text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-300">
-        Total Pipeline Value: <strong class="text-indigo-600 dark:text-indigo-400 font-mono font-bold">${{ store.leads.reduce((a, b) => a + (b.dealValue || 0), 0).toLocaleString() }}</strong>
+      </div>      <div class="text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-300">
+        Total Pipeline Value: <strong class="text-indigo-600 dark:text-indigo-400 font-mono font-bold">Rs. {{ store.leads.reduce((a, b) => a + (b.dealValue || 0), 0).toLocaleString() }}</strong>
       </div>
     </div>
 
@@ -131,7 +129,7 @@ function moveToNextStage(lead: Lead, event: MouseEvent) {
               </span>
             </div>
             <div class="text-[10px] text-slate-400 font-medium mt-0.5">
-              ${{ getStageTotalValue(stage).toLocaleString() }}
+              Rs. {{ getStageTotalValue(stage).toLocaleString() }}
             </div>
           </div>
 
@@ -158,11 +156,16 @@ function moveToNextStage(lead: Lead, event: MouseEvent) {
             <div class="flex items-start justify-between gap-1.5">
               <div>
                 <h4 class="font-bold text-xs text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                  {{ lead.name }}
+                   {{ lead.name }}
                 </h4>
                 <div class="text-[11px] text-slate-500 flex items-center gap-1 font-medium mt-0.5">
                   <Building class="w-3 h-3 text-slate-400" />
                   <span class="truncate max-w-[130px]">{{ lead.companyName || 'Individual' }}</span>
+                </div>
+                <div v-if="lead.projectType || lead.areaSize || lead.budgetRange" class="flex flex-wrap gap-1 mt-1 text-[9px] font-semibold">
+                  <span v-if="lead.projectType" class="px-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded border border-slate-200/50 dark:border-slate-700/50 truncate max-w-[80px]">{{ lead.projectType }}</span>
+                  <span v-if="lead.areaSize" class="px-1 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 rounded border border-indigo-200/30 truncate max-w-[80px]">{{ lead.areaSize }}</span>
+                  <span v-if="lead.budgetRange" class="px-1 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 rounded border border-emerald-200/30 truncate max-w-[80px]">{{ lead.budgetRange }}</span>
                 </div>
               </div>
               <PriorityBadge :priority="lead.priority" size="sm" />
@@ -171,7 +174,7 @@ function moveToNextStage(lead: Lead, event: MouseEvent) {
             <!-- Value & Source -->
             <div class="mt-2 flex items-center justify-between text-[11px]">
               <span class="font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-200/60 dark:border-emerald-800/40">
-                ${{ (lead.dealValue || 0).toLocaleString() }}
+                Rs. {{ (lead.dealValue || 0).toLocaleString() }}
               </span>
               <span class="text-[10px] text-slate-500 font-medium bg-slate-200/60 dark:bg-slate-700/60 px-1.5 py-0.5 rounded">
                 {{ lead.leadSource }}
