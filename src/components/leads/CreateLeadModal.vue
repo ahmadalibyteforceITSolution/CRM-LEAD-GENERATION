@@ -192,31 +192,17 @@ function handleCreateLead() {
             1. Contact & Company Information
           </h4>
 
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                Lead / Contact Name <span class="text-rose-500">*</span>
-              </label>
-              <input
-                v-model="name"
-                type="text"
-                placeholder="e.g. Johnathan Vance"
-                class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-indigo-500/20"
-                required
-              />
-            </div>
-
-            <div>
-              <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                Company Name
-              </label>
-              <input
-                v-model="companyName"
-                type="text"
-                placeholder="e.g. Vance Logistics LLC"
-                class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-indigo-500/20"
-              />
-            </div>
+          <div>
+            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+              Lead / Contact Name <span class="text-rose-500">*</span>
+            </label>
+            <input
+              v-model="name"
+              type="text"
+              placeholder="e.g. Johnathan Vance"
+              class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-indigo-500/20"
+              required
+            />
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -255,14 +241,14 @@ function handleCreateLead() {
             </div>
           </div>
 
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Email Address</label>
               <input
                 v-model="email"
                 type="email"
                 placeholder="contact@company.com"
-                class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs"
+                class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold"
               />
             </div>
 
@@ -275,55 +261,23 @@ function handleCreateLead() {
                 class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold"
               />
             </div>
-
-            <div>
-              <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">City / Location</label>
-              <input
-                v-model="city"
-                type="text"
-                placeholder="e.g. Austin, TX"
-                class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Full Physical Address</label>
-            <input
-              v-model="fullAddress"
-              type="text"
-              placeholder="Suite 500, 100 Main St, Austin, TX 78701"
-              class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs"
-            />
           </div>
         </div>
 
         <!-- Lead Source & Qualification -->
         <div class="space-y-3 pt-3 border-t border-slate-200 dark:border-slate-800">
           <h4 class="font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 text-[11px]">
-            2. Source, Scope & Qualification
+            2. Source & Qualification
           </h4>
 
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Lead Source</label>
-              <select
-                v-model="leadSource"
-                class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold cursor-pointer"
-              >
-                <option v-for="src in allSources" :key="src" :value="src">{{ src }}</option>
-              </select>
-            </div>
-
-            <div>
-              <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Service Required</label>
-              <input
-                v-model="serviceRequired"
-                type="text"
-                placeholder="e.g. B2B Cold Calling & Outreach"
-                class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold"
-              />
-            </div>
+          <div>
+            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Lead Source</label>
+            <select
+              v-model="leadSource"
+              class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold cursor-pointer"
+            >
+              <option v-for="src in allSources" :key="src" :value="src">{{ src }}</option>
+            </select>
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
