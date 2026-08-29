@@ -253,7 +253,7 @@ export const useCRMStore = defineStore('crm', () => {
   });
 
   const queueNotContacted = computed(() => {
-    return leads.value.filter(l => l.stage === 'New Lead' || !l.lastContactDate || (l.totalCalls || 0) + (l.totalWhatsApp || 0) === 0);
+    return leads.value.filter(l => l.priority === 'Not Qualified' || l.stage === 'New Lead' || !l.lastContactDate || (l.totalCalls || 0) + (l.totalWhatsApp || 0) === 0);
   });
 
   const queueNoResponse = computed(() => {
@@ -273,7 +273,7 @@ export const useCRMStore = defineStore('crm', () => {
   });
 
   const queueNotQualified = computed(() => {
-    return leads.value.filter(l => l.priority === 'Not Qualified');
+    return queueNotContacted.value;
   });
 
   const complianceRate = computed(() => {
@@ -297,7 +297,7 @@ export const useCRMStore = defineStore('crm', () => {
       if (activeQueueFilter.value === 'no_response' && !queueNoResponse.value.some(l => l.id === lead.id)) return false;
       if (activeQueueFilter.value === 'hot_leads' && !queueHotLeadsRequiringAction.value.some(l => l.id === lead.id)) return false;
       if (activeQueueFilter.value === 'proposals_pending' && !queueProposalsRequiringFollowUp.value.some(l => l.id === lead.id)) return false;
-      if (activeQueueFilter.value === 'missing_rules' && lead.priority !== 'Not Qualified') return false;
+      if (activeQueueFilter.value === 'missing_rules' && !queueNotQualified.value.some(l => l.id === lead.id)) return false;
 
       if (selectedStageFilter.value !== 'all' && lead.stage !== selectedStageFilter.value) return false;
       if (selectedPriorityFilter.value !== 'all' && lead.priority !== selectedPriorityFilter.value) return false;
