@@ -203,7 +203,14 @@ function closeDrawer() {
               <span>•</span>
               <span class="flex items-center gap-1 truncate"><MapPin class="w-3 h-3 text-slate-400 flex-shrink-0" /> {{ lead.city || 'No city' }}</span>
               <span>•</span>
-              <span class="font-mono text-emerald-600 font-bold">${{ (lead.dealValue || 0).toLocaleString() }}</span>
+              <span class="font-mono text-emerald-600 font-bold">Rs. {{ (lead.dealValue || 0).toLocaleString() }}</span>
+            </div>
+            <!-- Project metadata header badges -->
+            <div v-if="lead.projectType || lead.areaSize || lead.budgetRange || lead.projectLocation" class="text-[10px] sm:text-[11px] flex items-center gap-1.5 mt-2 flex-wrap font-bold">
+              <span v-if="lead.projectType" class="px-1.5 py-0.5 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 rounded-lg border border-indigo-200/30">{{ lead.projectType }}</span>
+              <span v-if="lead.areaSize" class="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-lg border border-slate-200/50">{{ lead.areaSize }}</span>
+              <span v-if="lead.budgetRange" class="px-1.5 py-0.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 rounded-lg border border-emerald-200/30">{{ lead.budgetRange }}</span>
+              <span v-if="lead.projectLocation" class="px-1.5 py-0.5 bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 rounded-lg border border-amber-200/30 flex items-center gap-1"><MapPin class="w-3 h-3 flex-shrink-0" />{{ lead.projectLocation }}</span>
             </div>
           </div>
         </div>
