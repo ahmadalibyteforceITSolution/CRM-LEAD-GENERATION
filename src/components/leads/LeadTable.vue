@@ -181,7 +181,7 @@ function handleDeleteLead(lead: Lead, event: MouseEvent) {
         <div class="flex items-start justify-between gap-2">
           <div class="flex items-center gap-2.5 min-w-0">
             <div class="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-bold flex items-center justify-center flex-shrink-0 text-xs shadow-sm">
-              {{ lead.name.charAt(0).toUpperCase() }}
+              {{ (lead?.name || '?').charAt(0).toUpperCase() }}
             </div>
             <div class="min-w-0">
               <h4 class="font-bold text-slate-900 dark:text-white text-xs truncate">{{ lead.name }}</h4>
@@ -328,7 +328,7 @@ function handleDeleteLead(lead: Lead, event: MouseEvent) {
             <td class="py-3.5 px-4">
               <div class="flex items-center gap-2.5">
                 <div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-bold flex items-center justify-center flex-shrink-0 text-xs shadow-sm">
-                  {{ lead.name.charAt(0).toUpperCase() }}
+                  {{ (lead?.name || '?').charAt(0).toUpperCase() }}
                 </div>
                 <div>
                   <div class="font-bold text-slate-900 dark:text-white text-xs group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors flex items-center gap-1.5">

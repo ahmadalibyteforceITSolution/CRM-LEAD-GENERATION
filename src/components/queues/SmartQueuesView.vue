@@ -117,7 +117,7 @@ const activeQueueLeads = computed(() => {
         <!-- Left: Lead Info -->
         <div class="flex items-start gap-2.5 sm:gap-3.5 flex-1 min-w-0 cursor-pointer" @click="store.openLeadDetail(lead.id)">
           <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 text-white font-bold text-xs sm:text-sm flex items-center justify-center flex-shrink-0 shadow-sm">
-            {{ lead.name.charAt(0).toUpperCase() }}
+            {{ (lead?.name || '?').charAt(0).toUpperCase() }}
           </div>
 
           <div class="space-y-1 min-w-0 flex-1">

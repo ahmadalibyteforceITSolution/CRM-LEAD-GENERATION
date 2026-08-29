@@ -190,7 +190,7 @@ function closeDrawer() {
       <div class="p-3.5 sm:p-6 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 flex flex-wrap items-center justify-between gap-2.5">
         <div class="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
           <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white font-bold text-base sm:text-lg flex items-center justify-center shadow-md flex-shrink-0">
-            {{ lead.name.charAt(0).toUpperCase() }}
+            {{ (lead?.name || '?').charAt(0).toUpperCase() }}
           </div>
           <div class="min-w-0">
             <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap">
