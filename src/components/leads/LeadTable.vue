@@ -189,7 +189,12 @@ function handleDeleteLead(lead: Lead, event: MouseEvent) {
         v-for="lead in store.filteredLeads"
         :key="'m-' + lead.id"
         @click="store.openLeadDetail(lead.id)"
-        class="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-2.5 active:bg-indigo-50/20 transition-colors"
+        :class="[
+          'p-3.5 rounded-2xl border shadow-sm space-y-2.5 active:bg-indigo-50/20 transition-all cursor-pointer',
+          store.checkLeadCompliance(lead).isCompliant
+            ? 'bg-emerald-50/20 border-emerald-100/50 dark:bg-emerald-950/5 dark:border-emerald-900/30'
+            : 'bg-rose-50/15 border-rose-100/50 dark:bg-rose-950/5 dark:border-rose-900/30'
+        ]"
       >
         <!-- Card Top: Name, Value, Priority -->
         <div class="flex items-start justify-between gap-2">
@@ -336,7 +341,12 @@ function handleDeleteLead(lead: Lead, event: MouseEvent) {
             v-for="lead in store.filteredLeads"
             :key="lead.id"
             @click="store.openLeadDetail(lead.id)"
-            class="hover:bg-indigo-50/40 dark:hover:bg-indigo-950/20 cursor-pointer transition-colors group"
+            :class="[
+              'cursor-pointer transition-colors group border-b border-slate-200/50 dark:border-slate-800/50',
+              store.checkLeadCompliance(lead).isCompliant
+                ? 'bg-emerald-50/20 hover:bg-emerald-100/30 dark:bg-emerald-950/5 dark:hover:bg-emerald-900/10'
+                : 'bg-rose-50/15 hover:bg-rose-100/25 dark:bg-rose-950/5 dark:hover:bg-rose-900/10'
+            ]"
           >
             <!-- Lead & Org -->
             <td class="py-3.5 px-4">

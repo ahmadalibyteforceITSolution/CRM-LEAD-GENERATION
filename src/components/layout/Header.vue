@@ -106,6 +106,7 @@ function handleResetDemo() {
         <UserCheck class="w-3.5 h-3.5 text-indigo-500 flex-shrink-0" />
         <span class="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:inline flex-shrink-0">Rep:</span>
         <select
+          v-if="store.currentUser?.role === 'SuperAdmin' || store.currentUser?.role === 'Admin'"
           v-model="store.currentSalesperson"
           class="bg-transparent text-xs font-semibold text-slate-800 dark:text-slate-100 focus:outline-none cursor-pointer w-full truncate"
         >
@@ -113,6 +114,9 @@ function handleResetDemo() {
             {{ sp.name }}
           </option>
         </select>
+        <span v-else class="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">
+          {{ store.currentSalesperson }}
+        </span>
       </div>
 
       <div class="flex items-center gap-1.5 flex-shrink-0">

@@ -238,25 +238,26 @@ const queuesList = computed(() => [
           Sales Representatives
         </div>
         <div class="space-y-1">
-          <div
-            v-for="rep in store.salespersons"
-            :key="rep.id"
-            @click="store.selectedSalespersonFilter = store.selectedSalespersonFilter === rep.name ? 'all' : rep.name; store.isMobileSidebarOpen = false"
-            :class="[
-              'flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs transition-colors cursor-pointer',
-              store.selectedSalespersonFilter === rep.name
-                ? 'bg-indigo-50 dark:bg-indigo-950/70 border border-indigo-200 dark:border-indigo-800 font-semibold'
-                : 'hover:bg-slate-100 dark:hover:bg-slate-800/50 text-slate-600 dark:text-slate-300'
-            ]"
-          >
-            <div class="flex items-center gap-2 truncate">
-              <img :src="rep.avatar" class="w-5 h-5 rounded-full object-cover border border-slate-200 dark:border-slate-700" />
-              <span class="truncate font-medium">{{ rep.name }}</span>
+          <template v-for="rep in store.salespersons" :key="rep.id">
+            <div
+              v-if="store.currentUser?.role === 'SuperAdmin' || store.currentUser?.role === 'Admin' || store.currentUser?.name === rep.name"
+              @click="store.selectedSalespersonFilter = store.selectedSalespersonFilter === rep.name ? 'all' : rep.name; store.isMobileSidebarOpen = false"
+              :class="[
+                'flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs transition-colors cursor-pointer',
+                store.selectedSalespersonFilter === rep.name
+                  ? 'bg-indigo-50 dark:bg-indigo-950/70 border border-indigo-200 dark:border-indigo-800 font-semibold'
+                  : 'hover:bg-slate-100 dark:hover:bg-slate-800/50 text-slate-600 dark:text-slate-300'
+              ]"
+            >
+              <div class="flex items-center gap-2 truncate">
+                <img :src="rep.avatar" class="w-5 h-5 rounded-full object-cover border border-slate-200 dark:border-slate-700" />
+                <span class="truncate font-medium">{{ rep.name }}</span>
+              </div>
+              <span class="text-[10px] text-slate-500 dark:text-slate-400">
+                {{ store.leads.filter(l => l.assignedSalesperson === rep.name).length }} leads
+              </span>
             </div>
-            <span class="text-[10px] text-slate-500 dark:text-slate-400">
-              {{ store.leads.filter(l => l.assignedSalesperson === rep.name).length }} leads
-            </span>
-          </div>
+          </template>
         </div>
       </div>
     </div>

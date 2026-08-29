@@ -61,6 +61,9 @@ const activityTimeframe = ref<'7days' | 'all'>('7days');
 
 // Filtered leads based on selected rep
 const filteredLeads = computed(() => {
+  if (store.currentUser && store.currentUser.role !== 'SuperAdmin' && store.currentUser.role !== 'Admin') {
+    return store.leads.filter(l => l.assignedSalesperson === store.currentUser?.name);
+  }
   if (selectedRepFilter.value === 'all') {
     return store.leads;
   }
@@ -183,8 +186,13 @@ const pipelineChartOptions = computed(() => ({
       ticks: {
         color: '#94a3b8',
         font: { size: 10 },
+        precision: 0,
+        stepSize: pipelineMetricType.value === 'value' ? undefined : 1,
         callback: function (val: any) {
-          return pipelineMetricType.value === 'value' ? `$${val.toLocaleString()}` : val;
+          if (pipelineMetricType.value === 'value') {
+            return `$${val.toLocaleString()}`;
+          }
+          return Math.floor(val) === val ? val : '';
         }
       }
     }
@@ -545,7 +553,15 @@ const repComparisonChartOptions = computed(() => ({
     y: {
       beginAtZero: true,
       grid: { color: 'rgba(148, 163, 184, 0.12)' },
-      ticks: { color: '#94a3b8', font: { size: 10 } }
+      ticks: {
+        color: '#94a3b8',
+        font: { size: 10 },
+        precision: 0,
+        stepSize: 1,
+        callback: function (val: any) {
+          return Math.floor(val) === val ? val : '';
+        }
+      }
     }
   }
 }));
@@ -567,8 +583,11 @@ const repComparisonChartOptions = computed(() => ({
 
       <!-- Filter Controls -->
       <div class="flex items-center gap-2 flex-wrap">
-        <!-- Salesperson Filter Dropdown -->
-        <div class="flex items-center gap-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-2.5 py-1.5 shadow-sm text-xs">
+        <!-- Salesperson Filter Dropdown (Visible only to SuperAdmin/Admin) -->
+        <div
+          v-if="store.currentUser?.role === 'SuperAdmin' || store.currentUser?.role === 'Admin'"
+          class="flex items-center gap-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-2.5 py-1.5 shadow-sm text-xs"
+        >
           <Filter class="w-3.5 h-3.5 text-slate-400" />
           <span class="text-slate-400 font-medium">Rep:</span>
           <select
@@ -760,8 +779,11 @@ const repComparisonChartOptions = computed(() => ({
       </div>
     </div>
 
-    <!-- Visual Charts Row 3: Sales Reps Multi-Metric Benchmarking (Grouped Bar Chart) -->
-    <div class="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+    <!-- Visual Charts Row 3: Sales Reps Multi-Metric Benchmarking (Grouped Bar Chart - Visible only to Admin/Manager) -->
+    <div
+      v-if="store.currentUser?.role === 'Admin' || store.currentUser?.role === 'Manager'"
+      class="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3"
+    >
       <div class="flex items-center justify-between flex-wrap gap-2">
         <div>
           <h3 class="font-extrabold text-xs text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
@@ -779,8 +801,11 @@ const repComparisonChartOptions = computed(() => ({
       </div>
     </div>
 
-    <!-- Sales Reps Leaderboard Table -->
-    <div class="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+    <!-- Sales Reps Leaderboard Table (Visible only to Admin/Manager) -->
+    <div
+      v-if="store.currentUser?.role === 'Admin' || store.currentUser?.role === 'Manager'"
+      class="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3"
+    >
       <div class="flex items-center justify-between">
         <div>
           <h3 class="font-extrabold text-xs text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">

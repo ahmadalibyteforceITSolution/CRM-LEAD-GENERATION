@@ -13,7 +13,7 @@ import {
   LeadSource,
   SmartQueueFilter
 } from '../types/crm';
-import { INITIAL_SALESPERSONS } from '../data/seedData';
+import { INITIAL_SALESPERSONS, INITIAL_LEADS, INITIAL_ACTIVITIES } from '../data/seedData';
 import { isFollowUpDueToday, isFollowUpOverdue, isFollowUpUpcoming, formatDate } from '../utils/dateUtils';
 import { apiService } from '../services/api';
 import confetti from 'canvas-confetti';
@@ -285,6 +285,11 @@ export const useCRMStore = defineStore('crm', () => {
   // Filtered Leads
   const filteredLeads = computed(() => {
     return leads.value.filter(lead => {
+      // Respect role-based access: Only SuperAdmin and Admin can see all leads
+      if (currentUser.value && currentUser.value.role !== 'SuperAdmin' && currentUser.value.role !== 'Admin') {
+        if (lead.assignedSalesperson !== currentUser.value.name) return false;
+      }
+
       if (activeQueueFilter.value === 'due_today' && !queueFollowUpsDueToday.value.some(l => l.id === lead.id)) return false;
       if (activeQueueFilter.value === 'upcoming' && !queueUpcomingFollowUps.value.some(l => l.id === lead.id)) return false;
       if (activeQueueFilter.value === 'overdue' && !queueOverdueFollowUps.value.some(l => l.id === lead.id)) return false;
@@ -696,7 +701,15 @@ export const useCRMStore = defineStore('crm', () => {
     return importedCount;
   }
 
+  async function resetToDemoData() {
+    leads.value = [...INITIAL_LEADS];
+    activities.value = [...INITIAL_ACTIVITIES];
+    salespersons.value = [...INITIAL_SALESPERSONS];
+    await apiService.syncDatabase(leads.value, activities.value, salespersons.value);
+  }
+
   return {
+    resetToDemoData,
     // Auth State & Actions
     currentUser,
     isAuthenticated,

@@ -30,6 +30,10 @@ const loginPassword = ref('password123');
 const rememberMe = ref(true);
 const showPassword = ref(false);
 
+function handleForgotPassword() {
+  window.alert('Demo account password: password123');
+}
+
 // Sign up state
 const signupName = ref('');
 const signupCompanyName = ref('');
@@ -281,7 +285,7 @@ function handleDemoLogin(email: string) {
             <div>
               <div class="flex items-center justify-between mb-1.5">
                 <label class="text-xs font-bold text-slate-300">Password</label>
-                <a href="#" @click.prevent="alert('Demo account password: password123')" class="text-[11px] text-indigo-400 hover:underline">
+                <a href="#" @click.prevent="handleForgotPassword()" class="text-[11px] text-indigo-400 hover:underline">
                   Forgot password?
                 </a>
               </div>

@@ -504,12 +504,16 @@ function closeDrawer() {
               <div class="flex items-center justify-between">
                 <span class="text-slate-500">Assigned Salesperson:</span>
                 <select
+                  v-if="store.currentUser?.role === 'SuperAdmin' || store.currentUser?.role === 'Admin'"
                   :value="lead.assignedSalesperson"
                   @change="handleFieldChange('assignedSalesperson', ($event.target as HTMLSelectElement).value)"
                   class="bg-slate-100 dark:bg-slate-800 font-semibold rounded-lg px-2 py-1 border border-slate-200 dark:border-slate-700"
                 >
                   <option v-for="sp in store.salespersons" :key="sp.id" :value="sp.name">{{ sp.name }}</option>
                 </select>
+                <span v-else class="font-semibold text-slate-700 dark:text-slate-300">
+                  {{ lead.assignedSalesperson }}
+                </span>
               </div>
 
               <div class="flex items-center justify-between">
