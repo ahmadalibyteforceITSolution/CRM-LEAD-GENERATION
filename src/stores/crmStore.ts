@@ -561,6 +561,10 @@ export const useCRMStore = defineStore('crm', () => {
     await apiService.saveLead(newLead);
 
     // Log Activity directly to MongoDB Database
+    const initialActivityNotes = newLead.notes && newLead.notes.trim()
+      ? `Lead created from ${newLead.leadSource}. Note: "${newLead.notes}". Assigned to ${newLead.assignedSalesperson}.`
+      : `Lead created from ${newLead.leadSource}. Assigned to ${newLead.assignedSalesperson}.`;
+
     await addActivityItem({
       leadId: newLead.id,
       date: formatDate(today, 'dd MMM'),
@@ -569,7 +573,7 @@ export const useCRMStore = defineStore('crm', () => {
       salesperson: assignedRep,
       attendedOrResponded: 'Scheduled',
       status: 'New Lead',
-      notes: `Lead created from ${newLead.leadSource}. Assigned to ${newLead.assignedSalesperson}.`,
+      notes: initialActivityNotes,
       nextFollowUp: `Follow up ${formatDate(newLead.nextFollowUpDate, 'dd MMM')}, ${newLead.nextFollowUpTime}`,
       type: 'note'
     });

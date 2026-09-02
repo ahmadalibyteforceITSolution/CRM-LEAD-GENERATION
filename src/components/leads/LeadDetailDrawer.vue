@@ -400,6 +400,21 @@ function closeDrawer() {
                 </select>
               </div>
 
+              <!-- Primary Lead Notes / Instructions -->
+              <div>
+                <label class="block text-[11px] font-bold text-slate-500 mb-0.5 flex items-center justify-between">
+                  <span>Lead Notes & Description</span>
+                  <span class="text-[10px] text-indigo-500 font-normal">Auto-saves</span>
+                </label>
+                <textarea
+                  :value="lead.notes || ''"
+                  @change="handleFieldChange('notes', ($event.target as HTMLTextAreaElement).value)"
+                  rows="3"
+                  placeholder="Add notes, requirements, or conversation summaries..."
+                  class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-semibold focus:ring-2 focus:ring-indigo-500/20"
+                ></textarea>
+              </div>
+
               <div v-if="lead.priority === 'Not Qualified'">
                 <label class="block text-[11px] font-bold text-rose-500 mb-0.5">Not Qualified Reason</label>
                 <textarea
@@ -578,6 +593,26 @@ function closeDrawer() {
 
         <!-- RIGHT COLUMN: Chronological Call & Follow-up History (7 Cols) -->
         <div class="lg:col-span-7 p-6 space-y-5 overflow-y-auto bg-slate-50/40 dark:bg-slate-900/40 flex flex-col h-full">
+          <!-- Primary Lead Notes Banner -->
+          <div v-if="lead.notes && lead.notes.trim()" class="p-4 rounded-2xl bg-amber-50/80 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/80 shadow-sm flex items-start gap-3">
+            <div class="w-8 h-8 rounded-xl bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center flex-shrink-0 text-amber-600 dark:text-amber-400">
+              <FileText class="w-4 h-4" />
+            </div>
+            <div class="space-y-1 min-w-0 flex-1">
+              <div class="flex items-center justify-between">
+                <span class="text-[11px] font-extrabold uppercase tracking-wider text-amber-800 dark:text-amber-300">
+                  Lead Notes & Requirements
+                </span>
+                <span class="text-[10px] bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full font-semibold">
+                  Original Note
+                </span>
+              </div>
+              <p class="text-xs text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed font-medium">
+                {{ lead.notes }}
+              </p>
+            </div>
+          </div>
+
           <!-- Quick Log New Interaction -->
           <div class="p-4 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
             <div class="flex items-center justify-between">
