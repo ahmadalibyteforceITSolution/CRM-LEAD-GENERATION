@@ -19,7 +19,7 @@ import { apiService } from '../services/api';
 import confetti from 'canvas-confetti';
 
 export const useCRMStore = defineStore('crm', () => {
-  // --- Pure MongoDB Atlas Database State (with resilient caching) ---
+  // --- Pure MongoDB Atlas Database State (NO localStorage) ---
   function cleanAndDeduplicateSalespersons(list: Salesperson[]): Salesperson[] {
     const map = new Map<string, Salesperson>();
     for (const item of list) {
@@ -60,21 +60,8 @@ export const useCRMStore = defineStore('crm', () => {
     return Array.from(map.values());
   }
 
-  const getInitialSalespersons = (): Salesperson[] => {
-    try {
-      const cached = localStorage.getItem('nexleads_salespersons');
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return cleanAndDeduplicateSalespersons([...INITIAL_SALESPERSONS, ...parsed]);
-        }
-      }
-    } catch (e) {}
-    return cleanAndDeduplicateSalespersons(INITIAL_SALESPERSONS);
-  };
-
   const leads = ref<Lead[]>([]);
-  const salespersons = ref<Salesperson[]>(getInitialSalespersons());
+  const salespersons = ref<Salesperson[]>(cleanAndDeduplicateSalespersons(INITIAL_SALESPERSONS));
   const activities = ref<ActivityHistoryItem[]>([]);
   const isDbConnected = ref<boolean>(true);
   const isLoading = ref<boolean>(false);
@@ -117,9 +104,6 @@ export const useCRMStore = defineStore('crm', () => {
     }
 
     salespersons.value = cleanAndDeduplicateSalespersons(salespersons.value);
-    try {
-      localStorage.setItem('nexleads_salespersons', JSON.stringify(salespersons.value));
-    } catch (e) {}
   }
 
   // Current active user & Authentication
@@ -188,7 +172,9 @@ export const useCRMStore = defineStore('crm', () => {
         currentUser.value = res.user;
         currentSalesperson.value = res.user.name;
         ensureSalespersonInList(res.user);
-        localStorage.setItem('nexleads_auth_user', JSON.stringify(res.user));
+        try {
+          sessionStorage.setItem('nexleads_auth_user', JSON.stringify(res.user));
+        } catch (e) {}
         confetti({ particleCount: 50, spread: 60 });
         return true;
       } else {
@@ -212,7 +198,9 @@ export const useCRMStore = defineStore('crm', () => {
         currentUser.value = res.user;
         currentSalesperson.value = res.user.name;
         ensureSalespersonInList(res.user);
-        localStorage.setItem('nexleads_auth_user', JSON.stringify(res.user));
+        try {
+          sessionStorage.setItem('nexleads_auth_user', JSON.stringify(res.user));
+        } catch (e) {}
         confetti({ particleCount: 70, spread: 80 });
         return true;
       } else {
@@ -240,16 +228,21 @@ export const useCRMStore = defineStore('crm', () => {
     currentUser.value = demoUser;
     currentSalesperson.value = demoUser.name;
     ensureSalespersonInList(demoUser);
-    localStorage.setItem('nexleads_auth_user', JSON.stringify(demoUser));
+    try {
+      sessionStorage.setItem('nexleads_auth_user', JSON.stringify(demoUser));
+    } catch (e) {}
     confetti({ particleCount: 40, spread: 50 });
   }
 
   function logoutUser() {
     currentUser.value = null;
-    localStorage.removeItem('nexleads_auth_user');
+    try {
+      sessionStorage.removeItem('nexleads_auth_user');
+      localStorage.clear();
+    } catch (e) {}
   }
 
-  // --- Fetch Directly from MongoDB Database ---
+  // --- Fetch Directly from MongoDB Database (NO localStorage) ---
   async function fetchAllFromDB() {
     isLoading.value = true;
     try {
@@ -320,9 +313,6 @@ export const useCRMStore = defineStore('crm', () => {
       if (currentUser.value) {
         ensureSalespersonInList(currentUser.value);
       }
-      try {
-        localStorage.setItem('nexleads_salespersons', JSON.stringify(salespersons.value));
-      } catch (e) {}
       isDbConnected.value = true;
     } catch (error) {
       console.error('Failed to fetch from MongoDB database:', error);
@@ -332,35 +322,28 @@ export const useCRMStore = defineStore('crm', () => {
   }
 
   async function initStore() {
-    // Restore and clean cached salespersons if available
+    // Purge any old localStorage so NO data is stored in localStorage
     try {
-      const cachedSalespersons = localStorage.getItem('nexleads_salespersons');
-      if (cachedSalespersons) {
-        const parsed = JSON.parse(cachedSalespersons);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          salespersons.value = cleanAndDeduplicateSalespersons(parsed);
-          localStorage.setItem('nexleads_salespersons', JSON.stringify(salespersons.value));
-        }
-      }
+      localStorage.clear();
     } catch (e) {}
 
-    // Check for existing session
-    const savedUser = localStorage.getItem('nexleads_auth_user');
-    if (savedUser) {
-      try {
+    // Check for existing session in sessionStorage (active tab session only)
+    try {
+      const savedUser = sessionStorage.getItem('nexleads_auth_user');
+      if (savedUser) {
         const parsed = JSON.parse(savedUser);
         if (parsed.name && parsed.name.toLowerCase().includes('laiba')) {
           parsed.name = 'Laiba Shahid';
           parsed.email = 'salesspacesandplaces@gmail.com';
           parsed.role = 'Sales Operations Manager';
-          localStorage.setItem('nexleads_auth_user', JSON.stringify(parsed));
+          sessionStorage.setItem('nexleads_auth_user', JSON.stringify(parsed));
         }
         currentUser.value = parsed;
         currentSalesperson.value = parsed.name || 'Ali Raza';
         ensureSalespersonInList(parsed);
-      } catch (e) {
-        localStorage.removeItem('nexleads_auth_user');
       }
+    } catch (e) {
+      sessionStorage.removeItem('nexleads_auth_user');
     }
 
     await fetchAllFromDB();
