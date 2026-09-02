@@ -798,57 +798,110 @@ export const useCRMStore = defineStore('crm', () => {
   // CSV Export & Import directly with MongoDB
   function exportLeadsToCSV() {
     const headers = [
+      'Lead ID',
       'Lead Name',
       'Company Name',
       'Phone Number',
       'WhatsApp Number',
       'Email',
-      'Industry',
       'City',
+      'Full Address',
+      'Industry',
       'Service Required',
       'Lead Source',
       'Date Added',
-      'Stage',
+      'Pipeline Stage',
       'Priority',
+      'Deal Value',
+      'Budget Range',
+      'Project Type',
+      'Project Location',
+      'Area Size',
+      'Timeline',
+      'Not Qualified Reason',
       'Assigned Salesperson',
+      'Assigned Date',
+      'Assigned Time',
+      'Assigned By',
+      'Territory',
+      'Current Owner',
+      'Last Contacted By',
       'Last Contact Date',
+      'Last Contact Time',
       'Next Action',
       'Next Follow-Up Date',
       'Next Follow-Up Time',
+      'Next Follow-Up Owner',
+      'Preferred Channel',
       'Total Calls',
       'Total WhatsApp',
-      'Notes'
+      'Tags',
+      'Lead Notes / Requirements',
+      'All Call & Interaction History Notes',
+      'Created At',
+      'Updated At'
     ];
 
-    const rows = leads.value.map(l => [
-      `"${(l.name || '').replace(/"/g, '""')}"`,
-      `"${(l.companyName || '').replace(/"/g, '""')}"`,
-      `"${(l.phoneNumber || '').replace(/"/g, '""')}"`,
-      `"${(l.whatsAppNumber || '').replace(/"/g, '""')}"`,
-      `"${(l.email || '').replace(/"/g, '""')}"`,
-      `"${(l.industry || '').replace(/"/g, '""')}"`,
-      `"${(l.city || '').replace(/"/g, '""')}"`,
-      `"${(l.serviceRequired || '').replace(/"/g, '""')}"`,
-      `"${(l.leadSource || '').replace(/"/g, '""')}"`,
-      `"${l.dateLeadAdded || ''}"`,
-      `"${l.stage || ''}"`,
-      `"${l.priority || ''}"`,
-      `"${l.assignedSalesperson || ''}"`,
-      `"${l.lastContactDate || ''}"`,
-      `"${(l.nextAction || '').replace(/"/g, '""')}"`,
-      `"${l.nextFollowUpDate || ''}"`,
-      `"${l.nextFollowUpTime || ''}"`,
-      l.totalCalls || 0,
-      l.totalWhatsApp || 0,
-      `"${(l.notes || '').replace(/"/g, '""')}"`
-    ]);
+    const rows = leads.value.map(l => {
+      // Find all activities logged for this lead
+      const leadActivities = activities.value.filter(a => a.leadId === l.id);
+      const activityNotesSummary = leadActivities
+        .map(a => `[${a.date} ${a.time || ''} | ${a.salesperson || ''} | ${a.channel || ''} (${a.attendedOrResponded || ''})]: ${a.notes || ''}`)
+        .join(' \n');
 
-    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+      return [
+        `"${(l.id || '').replace(/"/g, '""')}"`,
+        `"${(l.name || '').replace(/"/g, '""')}"`,
+        `"${(l.companyName || '').replace(/"/g, '""')}"`,
+        `"${(l.phoneNumber || '').replace(/"/g, '""')}"`,
+        `"${(l.whatsAppNumber || '').replace(/"/g, '""')}"`,
+        `"${(l.email || '').replace(/"/g, '""')}"`,
+        `"${(l.city || '').replace(/"/g, '""')}"`,
+        `"${(l.fullAddress || '').replace(/"/g, '""')}"`,
+        `"${(l.industry || '').replace(/"/g, '""')}"`,
+        `"${(l.serviceRequired || '').replace(/"/g, '""')}"`,
+        `"${(l.leadSource || '').replace(/"/g, '""')}"`,
+        `"${l.dateLeadAdded || ''}"`,
+        `"${l.stage || ''}"`,
+        `"${l.priority || ''}"`,
+        l.dealValue || 0,
+        `"${(l.budgetRange || '').replace(/"/g, '""')}"`,
+        `"${(l.projectType || '').replace(/"/g, '""')}"`,
+        `"${(l.projectLocation || '').replace(/"/g, '""')}"`,
+        `"${(l.areaSize || '').replace(/"/g, '""')}"`,
+        `"${(l.timeline || '').replace(/"/g, '""')}"`,
+        `"${(l.notQualifiedReason || '').replace(/"/g, '""')}"`,
+        `"${l.assignedSalesperson || ''}"`,
+        `"${l.assignedDate || ''}"`,
+        `"${l.assignedTime || ''}"`,
+        `"${l.assignedBy || ''}"`,
+        `"${(l.territory || '').replace(/"/g, '""')}"`,
+        `"${l.currentOwner || ''}"`,
+        `"${l.lastContactedBy || ''}"`,
+        `"${l.lastContactDate || ''}"`,
+        `"${l.lastContactTime || ''}"`,
+        `"${(l.nextAction || '').replace(/"/g, '""')}"`,
+        `"${l.nextFollowUpDate || ''}"`,
+        `"${l.nextFollowUpTime || ''}"`,
+        `"${l.nextFollowUpOwner || ''}"`,
+        `"${l.preferredChannel || ''}"`,
+        l.totalCalls || 0,
+        l.totalWhatsApp || 0,
+        `"${(Array.isArray(l.tags) ? l.tags.join(', ') : '').replace(/"/g, '""')}"`,
+        `"${(l.notes || '').replace(/"/g, '""')}"`,
+        `"${activityNotesSummary.replace(/"/g, '""')}"`,
+        `"${l.createdAt || ''}"`,
+        `"${l.updatedAt || ''}"`
+      ];
+    });
+
+    // Add UTF-8 BOM (\uFEFF) for Excel & Google Sheets compatibility
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `nexleads_crm_export_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', `spaces_and_places_crm_leads_${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -869,11 +922,17 @@ export const useCRMStore = defineStore('crm', () => {
         email: row['Email'] || row['email'] || '',
         industry: row['Industry'] || row['industry'] || 'General',
         city: row['City'] || row['city'] || '',
+        fullAddress: row['Full Address'] || row['address'] || '',
         serviceRequired: row['Service Required'] || row['service'] || 'Lead Generation',
         leadSource: (row['Lead Source'] || row['source'] || 'Google Maps') as LeadSource,
-        notes: row['Notes'] || row['notes'] || 'Imported via CSV',
+        notes: row['Lead Notes / Requirements'] || row['Notes'] || row['notes'] || 'Imported via CSV',
         priority: (row['Priority'] || 'Cold') as LeadPriority,
-        stage: (row['Stage'] || 'New Lead') as PipelineStage,
+        stage: (row['Pipeline Stage'] || row['Stage'] || 'New Lead') as PipelineStage,
+        projectType: row['Project Type'] || 'Other',
+        projectLocation: row['Project Location'] || '',
+        budgetRange: row['Budget Range'] || '',
+        areaSize: row['Area Size'] || '',
+        timeline: row['Timeline'] || '',
         assignedSalesperson: row['Assigned Salesperson'] || currentSalesperson.value,
         nextAction: row['Next Action'] || 'Cold Call / WhatsApp Outreach',
         nextFollowUpDate: row['Next Follow-Up Date'] || today,

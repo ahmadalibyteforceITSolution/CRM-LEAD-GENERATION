@@ -94,9 +94,77 @@ function confirmImport() {
 }
 
 function downloadSampleCSV() {
-  const sampleCSV = `Lead Name,Company Name,Phone Number,WhatsApp Number,Email,Industry,City,Service Required,Lead Source,Priority,Stage,Next Action,Notes
-"Alexander Hayes","Hayes Medical Logistics","+1 555-492-9910","+1 555-492-9910","alex@hayesmed.com","Healthcare","Dallas, TX","Medical B2B Cold Outreach","Google Maps","Hot","New Lead","First cold call to CEO","Looking for Q3 rollout"
-"Sophia Lin","Nova Cloud Dynamics","+1 555-831-2244","+1 555-831-2244","sophia@novacloud.io","SaaS & Tech","Seattle, WA","Inbound Lead Automation","LinkedIn","Warm","Contacted","Send WhatsApp credentials & case study","Needs multi-channel setup"`;
+  const headers = [
+    'Lead Name',
+    'Company Name',
+    'Phone Number',
+    'WhatsApp Number',
+    'Email',
+    'City',
+    'Full Address',
+    'Industry',
+    'Service Required',
+    'Lead Source',
+    'Priority',
+    'Pipeline Stage',
+    'Project Type',
+    'Project Location',
+    'Budget Range',
+    'Area Size',
+    'Timeline',
+    'Assigned Salesperson',
+    'Next Action',
+    'Lead Notes / Requirements'
+  ];
+
+  const sampleRows = [
+    [
+      '"Alexander Hayes"',
+      '"Hayes Medical Logistics"',
+      '"+1 555-492-9910"',
+      '"+1 555-492-9910"',
+      '"alex@hayesmed.com"',
+      '"Dallas, TX"',
+      '"Suite 300, 100 Main St, Dallas, TX"',
+      '"Healthcare"',
+      '"Lead Generation & Outreach"',
+      '"Google Maps"',
+      '"Hot"',
+      '"New Lead"',
+      '"Commercial"',
+      '"Downtown Dallas"',
+      '"1m-2m"',
+      '"1000-2000 sq.ft"',
+      '"Immediately"',
+      '"Laiba Shahid"',
+      '"First cold call to CEO"',
+      '"Looking for turnkey lead generation system and WhatsApp follow-up automation."'
+    ],
+    [
+      '"Sophia Lin"',
+      '"Nova Cloud Dynamics"',
+      '"+1 555-831-2244"',
+      '"+1 555-831-2244"',
+      '"sophia@novacloud.io"',
+      '"Seattle, WA"',
+      '"Floor 12, Westlake Ave, Seattle, WA"',
+      '"SaaS & Tech"',
+      '"B2B Outbound Campaigns"',
+      '"LinkedIn"',
+      '"Warm"',
+      '"Contacted"',
+      '"Office"',
+      '"Seattle Tech Hub"',
+      '"2m-3m"',
+      '"2000-3000 sq.ft"',
+      '"0-1 month"',
+      '"SuperAdmin"',
+      '"Send WhatsApp credentials & case study"',
+      '"High budget client from LinkedIn campaign. Ready for demo next week."'
+    ]
+  ];
+
+  const sampleCSV = '\uFEFF' + [headers.join(','), ...sampleRows.map(r => r.join(','))].join('\n');
 
   const blob = new Blob([sampleCSV], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
