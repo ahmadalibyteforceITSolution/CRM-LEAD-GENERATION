@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useCRMStore } from '@/stores/crmStore';
 import { LeadSource, PipelineStage, LeadPriority, ContactChannel } from '@/types/crm';
 import { getTodayString } from '@/utils/dateUtils';
