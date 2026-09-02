@@ -148,6 +148,12 @@ function handleFieldChange(field: string, value: any) {
         }, 10);
         return;
       }
+      store.updateLead(lead.value.id, {
+        assignedSalesperson: value,
+        currentOwner: value,
+        nextFollowUpOwner: value
+      });
+      return;
     }
     store.updateLead(lead.value.id, { [field]: value });
   }

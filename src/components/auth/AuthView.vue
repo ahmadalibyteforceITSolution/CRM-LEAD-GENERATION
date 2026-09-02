@@ -49,33 +49,15 @@ const isSubmitting = ref(false);
 
 const demoAccounts = [
   {
+    name: 'SuperAdmin',
+    email: 'admin@nexleads.io',
+    role: 'SuperAdmin',
+    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80'
+  },
+  {
     name: 'Laiba Shahid',
     email: 'salesspacesandplaces@gmail.com',
     role: 'Sales Operations Manager',
-    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80'
-  },
-  {
-    name: 'Ali Raza',
-    email: 'ali.raza@nexleads.io',
-    role: 'Senior SDR / Closer',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
-  },
-  {
-    name: 'Sara Khan',
-    email: 'sara.khan@nexleads.io',
-    role: 'Account Executive',
-    avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80'
-  },
-  {
-    name: 'Hamza Malik',
-    email: 'hamza.malik@nexleads.io',
-    role: 'Lead Gen Specialist',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80'
-  },
-  {
-    name: 'Zainab Abbas',
-    email: 'zainab.abbas@nexleads.io',
-    role: 'Cold Calling Rep',
     avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80'
   }
 ];

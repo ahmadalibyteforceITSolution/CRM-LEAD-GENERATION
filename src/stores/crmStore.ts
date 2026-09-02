@@ -22,12 +22,16 @@ export const useCRMStore = defineStore('crm', () => {
   // --- Pure MongoDB Atlas Database State (NO localStorage) ---
   function cleanAndDeduplicateSalespersons(list: Salesperson[]): Salesperson[] {
     const map = new Map<string, Salesperson>();
+    const blockedDemoNames = ['ali raza', 'sarah jenkins', 'michael chang', 'priya sharma', 'sara khan', 'hamza malik', 'zainab abbas'];
     for (const item of list) {
       if (!item || !item.name) continue;
       let name = item.name.trim();
       let email = (item.email || '').toLowerCase().trim();
       let role = item.role || 'Sales Representative';
       let avatar = item.avatar || '';
+
+      // Ignore removed demo accounts
+      if (blockedDemoNames.includes(name.toLowerCase())) continue;
 
       // Normalize any variation of Laiba to single exact 'Laiba Shahid'
       if (name.toLowerCase().includes('laiba') || email === 'salesspacesandplaces@gmail.com') {
@@ -72,6 +76,9 @@ export const useCRMStore = defineStore('crm', () => {
     let cleanName = user.name.trim();
     let cleanEmail = (user.email || '').toLowerCase().trim();
 
+    const blockedDemoNames = ['ali raza', 'sarah jenkins', 'michael chang', 'priya sharma', 'sara khan', 'hamza malik', 'zainab abbas'];
+    if (blockedDemoNames.includes(cleanName.toLowerCase())) return;
+
     if (cleanName.toLowerCase().includes('laiba') || cleanEmail === 'salesspacesandplaces@gmail.com') {
       cleanName = 'Laiba Shahid';
       cleanEmail = 'salesspacesandplaces@gmail.com';
@@ -113,7 +120,7 @@ export const useCRMStore = defineStore('crm', () => {
   const isAuthLoading = ref<boolean>(false);
 
   // Current active salesperson name
-  const currentSalesperson = ref<string>('Ali Raza');
+  const currentSalesperson = ref<string>('SuperAdmin');
 
   // UI state
   const currentView = ref<'table' | 'kanban' | 'queues' | 'analytics'>('table');
@@ -215,14 +222,14 @@ export const useCRMStore = defineStore('crm', () => {
     }
   }
 
-  function loginDemoUser(demoEmail: string = 'ali.raza@nexleads.io') {
+  function loginDemoUser(demoEmail: string = 'salesspacesandplaces@gmail.com') {
     const sp = salespersons.value.find(s => s.email === demoEmail) || salespersons.value[0];
     const demoUser: User = {
       id: sp.id,
       name: sp.name,
       email: sp.email,
       role: sp.role,
-      companyName: 'NexLeads Agency',
+      companyName: sp.name === 'SuperAdmin' ? 'NexLeads Agency' : 'Spaces & Places',
       avatar: sp.avatar
     };
     currentUser.value = demoUser;
@@ -259,29 +266,43 @@ export const useCRMStore = defineStore('crm', () => {
         activities.value = dbActivities;
       }
 
+      // Normalize any lead assigned to old demo reps so they belong to Laiba Shahid or SuperAdmin
+      const blockedDemoNames = ['ali raza', 'sarah jenkins', 'michael chang', 'priya sharma', 'sara khan', 'hamza malik', 'zainab abbas'];
+      for (const lead of leads.value) {
+        if (lead.assignedSalesperson) {
+          const repLower = lead.assignedSalesperson.toLowerCase().trim();
+          if (repLower.includes('laiba')) {
+            lead.assignedSalesperson = 'Laiba Shahid';
+            lead.currentOwner = 'Laiba Shahid';
+            lead.nextFollowUpOwner = 'Laiba Shahid';
+          } else if (blockedDemoNames.includes(repLower)) {
+            lead.assignedSalesperson = 'Laiba Shahid';
+            lead.currentOwner = 'Laiba Shahid';
+            lead.nextFollowUpOwner = 'Laiba Shahid';
+          }
+        }
+      }
+
       const map = new Map<string, Salesperson>();
 
-      // 1. Initial standard personas
+      // 1. Initial standard personas (SuperAdmin & Laiba Shahid)
       for (const sp of INITIAL_SALESPERSONS) {
         map.set(sp.name.toLowerCase(), sp);
       }
 
       // 2. Local in-memory list
       for (const sp of salespersons.value) {
-        map.set(sp.name.toLowerCase(), sp);
+        if (!blockedDemoNames.includes(sp.name.toLowerCase())) {
+          map.set(sp.name.toLowerCase(), sp);
+        }
       }
 
       // 3. Backend DB salespersons
       if (dbSalespersons && Array.isArray(dbSalespersons)) {
         for (const sp of dbSalespersons) {
-          map.set(sp.name.toLowerCase(), sp);
-        }
-      }
-
-      // Normalize any lead assigned to old Laiba format
-      for (const lead of leads.value) {
-        if (lead.assignedSalesperson && lead.assignedSalesperson.toLowerCase().includes('laiba') && lead.assignedSalesperson !== 'Laiba Shahid') {
-          lead.assignedSalesperson = 'Laiba Shahid';
+          if (!blockedDemoNames.includes(sp.name.toLowerCase())) {
+            map.set(sp.name.toLowerCase(), sp);
+          }
         }
       }
 
@@ -289,7 +310,7 @@ export const useCRMStore = defineStore('crm', () => {
       for (const lead of leads.value) {
         let rep = (lead.assignedSalesperson || '').trim();
         if (rep && rep.toLowerCase() !== 'unassigned') {
-          if (rep.toLowerCase().includes('laiba')) {
+          if (rep.toLowerCase().includes('laiba') || blockedDemoNames.includes(rep.toLowerCase())) {
             rep = 'Laiba Shahid';
           }
           const key = rep.toLowerCase();
@@ -339,7 +360,7 @@ export const useCRMStore = defineStore('crm', () => {
           sessionStorage.setItem('nexleads_auth_user', JSON.stringify(parsed));
         }
         currentUser.value = parsed;
-        currentSalesperson.value = parsed.name || 'Ali Raza';
+        currentSalesperson.value = parsed.name || 'SuperAdmin';
         ensureSalespersonInList(parsed);
       }
     } catch (e) {
@@ -434,8 +455,8 @@ export const useCRMStore = defineStore('crm', () => {
   // Filtered Leads
   const filteredLeads = computed(() => {
     return leads.value.filter(lead => {
-      // Respect role-based access: Only SuperAdmin and Admin can see all leads
-      if (currentUser.value && currentUser.value.role !== 'SuperAdmin' && currentUser.value.role !== 'Admin') {
+      // Respect role-based access: SuperAdmin, Admin, and Sales Operations Manager can see all leads
+      if (currentUser.value && currentUser.value.role !== 'SuperAdmin' && currentUser.value.role !== 'Admin' && currentUser.value.role !== 'Sales Operations Manager') {
         if (lead.assignedSalesperson !== currentUser.value.name) return false;
       }
 
@@ -486,6 +507,9 @@ export const useCRMStore = defineStore('crm', () => {
     const today = new Date().toISOString().split('T')[0];
     const nowTime = new Date().toTimeString().slice(0, 5);
 
+    const assignedRep = newLeadData.assignedSalesperson || currentSalesperson.value || currentUser.value?.name || 'SuperAdmin';
+    const creator = currentUser.value?.name || currentSalesperson.value || 'SuperAdmin';
+
     const newLead: Lead = {
       id: 'lead-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7),
       name: newLeadData.name || 'Unnamed Lead',
@@ -508,16 +532,16 @@ export const useCRMStore = defineStore('crm', () => {
       projectLocation: newLeadData.projectLocation || '',
       stage: newLeadData.stage || 'New Lead',
       priority: newLeadData.priority || 'Cold',
-      assignedSalesperson: newLeadData.assignedSalesperson || currentSalesperson.value,
-      assignedDate: today,
-      assignedTime: nowTime,
-      assignedBy: currentSalesperson.value,
+      assignedSalesperson: assignedRep,
+      assignedDate: newLeadData.assignedDate || today,
+      assignedTime: newLeadData.assignedTime || nowTime,
+      assignedBy: newLeadData.assignedBy || creator,
       territory: newLeadData.territory || 'General',
-      currentOwner: newLeadData.assignedSalesperson || currentSalesperson.value,
+      currentOwner: newLeadData.currentOwner || assignedRep,
       lastContactedBy: newLeadData.lastContactedBy || '',
       lastContactDate: newLeadData.lastContactDate || '',
       lastContactTime: newLeadData.lastContactTime || '',
-      nextFollowUpOwner: newLeadData.nextFollowUpOwner || newLeadData.assignedSalesperson || currentSalesperson.value,
+      nextFollowUpOwner: newLeadData.nextFollowUpOwner || assignedRep,
       nextAction: newLeadData.nextAction || 'First Cold Outreach',
       nextFollowUpDate: newLeadData.nextFollowUpDate || today,
       nextFollowUpTime: newLeadData.nextFollowUpTime || '14:00',
@@ -542,7 +566,7 @@ export const useCRMStore = defineStore('crm', () => {
       date: formatDate(today, 'dd MMM'),
       time: nowTime,
       channel: 'Website Enquiry',
-      salesperson: currentSalesperson.value,
+      salesperson: assignedRep,
       attendedOrResponded: 'Scheduled',
       status: 'New Lead',
       notes: `Lead created from ${newLead.leadSource}. Assigned to ${newLead.assignedSalesperson}.`,
@@ -558,13 +582,19 @@ export const useCRMStore = defineStore('crm', () => {
     if (idx === -1) return;
 
     const oldStage = leads.value[idx].stage;
+    const finalUpdates = { ...updates };
+    if (finalUpdates.assignedSalesperson) {
+      if (!finalUpdates.currentOwner) finalUpdates.currentOwner = finalUpdates.assignedSalesperson;
+      if (!finalUpdates.nextFollowUpOwner) finalUpdates.nextFollowUpOwner = finalUpdates.assignedSalesperson;
+    }
+
     leads.value[idx] = {
       ...leads.value[idx],
-      ...updates,
+      ...finalUpdates,
       updatedAt: new Date().toISOString()
     };
 
-    if (updates.stage && updates.stage === 'Won / Closed' && oldStage !== 'Won / Closed') {
+    if (finalUpdates.stage && finalUpdates.stage === 'Won / Closed' && oldStage !== 'Won / Closed') {
       confetti({
         particleCount: 120,
         spread: 70,
@@ -573,7 +603,7 @@ export const useCRMStore = defineStore('crm', () => {
     }
 
     // Save directly to MongoDB Database
-    await apiService.updateLead(id, updates);
+    await apiService.updateLead(id, finalUpdates);
   }
 
   async function updateLeadStage(id: string, newStage: PipelineStage) {

@@ -156,6 +156,12 @@ function handleCreateLead() {
   projectLocation.value = '';
   store.isCreateLeadModalOpen = false;
 }
+
+watch(() => store.isCreateLeadModalOpen, (isOpen) => {
+  if (isOpen) {
+    assignedSalesperson.value = store.currentSalesperson || store.currentUser?.name || 'SuperAdmin';
+  }
+});
 </script>
 
 <template>

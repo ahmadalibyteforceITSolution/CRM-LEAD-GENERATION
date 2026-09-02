@@ -36,42 +36,6 @@ let memoryUsers = [
     role: 'Sales Operations Manager',
     companyName: 'Spaces & Places',
     avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80'
-  },
-  {
-    id: 'user-demo-1',
-    name: 'Ali Raza',
-    email: 'ali.raza@nexleads.io',
-    password: 'password123',
-    role: 'Senior SDR / Closer',
-    companyName: 'NexLeads Agency',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
-  },
-  {
-    id: 'user-demo-2',
-    name: 'Sara Khan',
-    email: 'sara.khan@nexleads.io',
-    password: 'password123',
-    role: 'Account Executive',
-    companyName: 'NexLeads Agency',
-    avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80'
-  },
-  {
-    id: 'user-demo-3',
-    name: 'Hamza Malik',
-    email: 'hamza.malik@nexleads.io',
-    password: 'password123',
-    role: 'Lead Generation Specialist',
-    companyName: 'NexLeads Agency',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80'
-  },
-  {
-    id: 'user-demo-4',
-    name: 'Zainab Abbas',
-    email: 'zainab.abbas@nexleads.io',
-    password: 'password123',
-    role: 'Cold Calling Specialist',
-    companyName: 'NexLeads Agency',
-    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80'
   }
 ];
 
@@ -91,38 +55,6 @@ let memorySalespersons = [
     role: 'Sales Operations Manager',
     avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
     activeLeadsCount: 0
-  },
-  {
-    id: 'sp-1',
-    name: 'Ali Raza',
-    email: 'ali.raza@nexleads.io',
-    role: 'Senior SDR / Closer',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-    activeLeadsCount: 14
-  },
-  {
-    id: 'sp-2',
-    name: 'Sarah Jenkins',
-    email: 'sarah.j@nexleads.io',
-    role: 'Cold Outreach Specialist',
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
-    activeLeadsCount: 19
-  },
-  {
-    id: 'sp-3',
-    name: 'Michael Chang',
-    email: 'michael.c@nexleads.io',
-    role: 'Account Executive',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-    activeLeadsCount: 11
-  },
-  {
-    id: 'sp-4',
-    name: 'Priya Sharma',
-    email: 'priya.s@nexleads.io',
-    role: 'Inbound Lead Manager',
-    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
-    activeLeadsCount: 16
   }
 ];
 
@@ -130,12 +62,16 @@ let cachedConnection = null;
 
 function cleanAndNormalizeSalespersons(list) {
   const map = new Map();
+  const blockedDemoNames = ['ali raza', 'sarah jenkins', 'michael chang', 'priya sharma', 'sara khan', 'hamza malik', 'zainab abbas'];
   for (const item of list) {
     if (!item || !item.name) continue;
     let name = item.name.trim();
     let email = (item.email || '').toLowerCase().trim();
     let role = item.role || 'Sales Representative';
     let avatar = item.avatar || '';
+
+    // Ignore old demo names
+    if (blockedDemoNames.includes(name.toLowerCase())) continue;
 
     // Normalize any variation of Laiba (Sales Ops) to ONLY Laiba Shahid
     if (name.toLowerCase().includes('laiba') || email === 'salesspacesandplaces@gmail.com') {
@@ -170,9 +106,18 @@ function cleanAndNormalizeSalespersons(list) {
 async function seedDatabaseIfEmpty() {
   try {
     if (mongoose.connection.readyState === 1) {
-      // Purge any legacy 'Laiba (Sales Ops)' records so only 'Laiba Shahid' remains
+      // Purge all old demo salespeople and users
+      const demoNames = ['Ali Raza', 'Sarah Jenkins', 'Michael Chang', 'Priya Sharma', 'Sara Khan', 'Hamza Malik', 'Zainab Abbas', 'Laiba (Sales Ops)'];
+      await SalespersonModel.deleteMany({ name: { $in: demoNames } });
+      await UserModel.deleteMany({ name: { $in: demoNames } });
       await SalespersonModel.deleteMany({ name: /Sales Ops/i });
       await UserModel.deleteMany({ name: /Sales Ops/i });
+
+      // Reassign any existing lead with an old demo assigned salesperson to 'Laiba Shahid'
+      await LeadModel.updateMany(
+        { assignedSalesperson: { $in: ['Ali Raza', 'Sarah Jenkins', 'Michael Chang', 'Priya Sharma', 'Laiba (Sales Ops)'] } },
+        { assignedSalesperson: 'Laiba Shahid', currentOwner: 'Laiba Shahid', nextFollowUpOwner: 'Laiba Shahid' }
+      );
 
       // Seed default users if missing
       for (const u of memoryUsers) {
@@ -270,6 +215,11 @@ app.post('/api/leads', async (req, res) => {
       leadData.id = 'lead-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7);
     }
 
+    const rep = leadData.assignedSalesperson || 'SuperAdmin';
+    if (!leadData.currentOwner) leadData.currentOwner = rep;
+    if (!leadData.nextFollowUpOwner) leadData.nextFollowUpOwner = rep;
+    if (!leadData.assignedBy) leadData.assignedBy = rep;
+
     // Keep memory in sync
     const existingIndex = memoryLeads.findIndex(l => l.id === leadData.id);
     if (existingIndex >= 0) {
@@ -298,6 +248,10 @@ app.post('/api/leads', async (req, res) => {
 app.put('/api/leads/:id', async (req, res) => {
   try {
     const updates = { ...req.body, updatedAt: new Date().toISOString() };
+    if (updates.assignedSalesperson) {
+      if (!updates.currentOwner) updates.currentOwner = updates.assignedSalesperson;
+      if (!updates.nextFollowUpOwner) updates.nextFollowUpOwner = updates.assignedSalesperson;
+    }
 
     const existingIndex = memoryLeads.findIndex(l => l.id === req.params.id);
     if (existingIndex >= 0) {
