@@ -40,21 +40,31 @@ export const useCRMStore = defineStore('crm', () => {
   // Helper to ensure a user is in salespersons list and synced
   function ensureSalespersonInList(user: { id?: string; name: string; email?: string; role?: string; avatar?: string }) {
     if (!user || !user.name) return;
+    const cleanName = user.name.trim();
     const cleanEmail = (user.email || '').toLowerCase().trim();
     const existingIndex = salespersons.value.findIndex(
-      s => s.name.toLowerCase() === user.name.toLowerCase() || (cleanEmail && s.email.toLowerCase() === cleanEmail)
+      s => s.name.toLowerCase() === cleanName.toLowerCase() || (cleanEmail && s.email.toLowerCase() === cleanEmail)
     );
+
+    const isLaiba = cleanName.toLowerCase() === 'laiba shahid';
+    const isSuperAdmin = cleanName.toLowerCase() === 'superadmin';
+
     if (existingIndex < 0) {
-      salespersons.value.unshift({
-        id: user.id || ('sp-' + Date.now()),
-        name: user.name,
-        email: cleanEmail,
-        role: user.role || 'Sales Operations Manager',
-        avatar: user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(user.name)}`,
+      salespersons.value.push({
+        id: user.id || ('sp-' + encodeURIComponent(cleanName.toLowerCase().replace(/\s+/g, '-'))),
+        name: cleanName,
+        email: cleanEmail || (isLaiba ? 'salesspacesandplaces@gmail.com' : (isSuperAdmin ? 'admin@nexleads.io' : `${cleanName.toLowerCase().replace(/\s+/g, '.')}@nexleads.io`)),
+        role: user.role || (isLaiba ? 'Sales Operations Manager' : (isSuperAdmin ? 'SuperAdmin' : 'Sales Representative')),
+        avatar: user.avatar || (isSuperAdmin ? 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80' : `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(cleanName)}`),
         activeLeadsCount: 0
       });
-    } else if (user.role && salespersons.value[existingIndex].role !== user.role) {
-      salespersons.value[existingIndex].role = user.role;
+    } else {
+      if (user.role && salespersons.value[existingIndex].role !== user.role) {
+        salespersons.value[existingIndex].role = user.role;
+      }
+      if (cleanEmail && !salespersons.value[existingIndex].email) {
+        salespersons.value[existingIndex].email = cleanEmail;
+      }
     }
     try {
       localStorage.setItem('nexleads_salespersons', JSON.stringify(salespersons.value));
@@ -204,22 +214,48 @@ export const useCRMStore = defineStore('crm', () => {
       if (dbActivities && Array.isArray(dbActivities)) {
         activities.value = dbActivities;
       }
-      if (dbSalespersons && Array.isArray(dbSalespersons) && dbSalespersons.length > 0) {
-        const map = new Map<string, Salesperson>();
-        // Add initial salespersons
-        for (const sp of INITIAL_SALESPERSONS) {
-          map.set(sp.email.toLowerCase(), sp);
-        }
-        // Merge current in-memory
-        for (const sp of salespersons.value) {
-          map.set(sp.email.toLowerCase(), sp);
-        }
-        // Merge DB salespersons
-        for (const sp of dbSalespersons) {
-          map.set(sp.email.toLowerCase(), sp);
-        }
-        salespersons.value = Array.from(map.values());
+
+      const map = new Map<string, Salesperson>();
+
+      // 1. Initial standard personas
+      for (const sp of INITIAL_SALESPERSONS) {
+        map.set(sp.name.toLowerCase(), sp);
       }
+
+      // 2. Local in-memory list
+      for (const sp of salespersons.value) {
+        map.set(sp.name.toLowerCase(), sp);
+      }
+
+      // 3. Backend DB salespersons
+      if (dbSalespersons && Array.isArray(dbSalespersons)) {
+        for (const sp of dbSalespersons) {
+          map.set(sp.name.toLowerCase(), sp);
+        }
+      }
+
+      // 4. Extract assigned reps from all existing leads
+      for (const lead of leads.value) {
+        const rep = (lead.assignedSalesperson || '').trim();
+        if (rep && rep.toLowerCase() !== 'unassigned') {
+          const key = rep.toLowerCase();
+          if (!map.has(key)) {
+            const isLaiba = key === 'laiba shahid';
+            const isSuperAdmin = key === 'superadmin';
+            map.set(key, {
+              id: 'sp-' + encodeURIComponent(key.replace(/\s+/g, '-')),
+              name: rep,
+              email: isLaiba ? 'salesspacesandplaces@gmail.com' : (isSuperAdmin ? 'admin@nexleads.io' : `${key.replace(/\s+/g, '.')}@nexleads.io`),
+              role: isLaiba ? 'Sales Operations Manager' : (isSuperAdmin ? 'SuperAdmin' : 'Sales Representative'),
+              avatar: isSuperAdmin ? 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80' : `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(rep)}`,
+              activeLeadsCount: 0
+            });
+          }
+        }
+      }
+
+      salespersons.value = Array.from(map.values());
+
       if (currentUser.value) {
         ensureSalespersonInList(currentUser.value);
       }

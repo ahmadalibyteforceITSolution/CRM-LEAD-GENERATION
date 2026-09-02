@@ -20,15 +20,6 @@ let memoryLeads = [];
 let memoryActivities = [];
 let memoryUsers = [
   {
-    id: 'user-sales-op',
-    name: 'Laiba (Sales Ops)',
-    email: 'salesspacesandplaces@gmail.com',
-    password: 'Laiba1234',
-    role: 'Sales Operations Manager',
-    companyName: 'Spaces & Places',
-    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80'
-  },
-  {
     id: 'user-admin',
     name: 'SuperAdmin',
     email: 'admin@nexleads.io',
@@ -36,6 +27,15 @@ let memoryUsers = [
     role: 'SuperAdmin',
     companyName: 'NexLeads Agency',
     avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80'
+  },
+  {
+    id: 'user-sales-op',
+    name: 'Laiba Shahid',
+    email: 'salesspacesandplaces@gmail.com',
+    password: 'Laiba1234',
+    role: 'Sales Operations Manager',
+    companyName: 'Spaces & Places',
+    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80'
   },
   {
     id: 'user-demo-1',
@@ -77,8 +77,16 @@ let memoryUsers = [
 
 let memorySalespersons = [
   {
+    id: 'sp-admin',
+    name: 'SuperAdmin',
+    email: 'admin@nexleads.io',
+    role: 'SuperAdmin',
+    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80',
+    activeLeadsCount: 0
+  },
+  {
     id: 'sp-sales-op',
-    name: 'Laiba (Sales Ops)',
+    name: 'Laiba Shahid',
     email: 'salesspacesandplaces@gmail.com',
     role: 'Sales Operations Manager',
     avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
@@ -497,21 +505,20 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 // --- SALESPERSONS ENDPOINTS ---
-// GET all salespersons (merges DB, memory, and registered users)
+// GET all salespersons (merges DB, memory, registered users, and assigned reps on leads)
 app.get('/api/salespersons', async (req, res) => {
   try {
-    let result = [...memorySalespersons];
+    const map = new Map();
+
+    // Load default memory salespersons
+    for (const sp of memorySalespersons) {
+      map.set(sp.email.toLowerCase(), sp);
+    }
 
     if (mongoose.connection.readyState === 1) {
       const dbSalespersons = await SalespersonModel.find();
       const dbUsers = await UserModel.find();
-
-      const map = new Map();
-
-      // Load memory salespersons
-      for (const sp of memorySalespersons) {
-        map.set(sp.email.toLowerCase(), sp);
-      }
+      const dbLeads = await LeadModel.find();
 
       // Load DB salespersons
       for (const sp of dbSalespersons) {
@@ -539,11 +546,49 @@ app.get('/api/salespersons', async (req, res) => {
         }
       }
 
-      result = Array.from(map.values());
-      memorySalespersons = result;
-      return res.json(result);
+      // Ensure all reps assigned to any existing lead in DB appear in salespersons
+      for (const lead of dbLeads) {
+        const repName = (lead.assignedSalesperson || '').trim();
+        if (repName && repName.toLowerCase() !== 'unassigned') {
+          const alreadyExists = Array.from(map.values()).some(s => s.name.toLowerCase() === repName.toLowerCase());
+          if (!alreadyExists) {
+            const isLaiba = repName.toLowerCase() === 'laiba shahid';
+            const email = isLaiba ? 'salesspacesandplaces@gmail.com' : `${repName.toLowerCase().replace(/\s+/g, '.')}@nexleads.io`;
+            map.set(email, {
+              id: 'sp-' + encodeURIComponent(repName.toLowerCase().replace(/\s+/g, '-')),
+              name: repName,
+              email: email,
+              role: isLaiba ? 'Sales Operations Manager' : 'Sales Representative',
+              avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(repName)}`,
+              activeLeadsCount: 0
+            });
+          }
+        }
+      }
+    } else {
+      // Memory fallback: also check memoryLeads
+      for (const lead of memoryLeads) {
+        const repName = (lead.assignedSalesperson || '').trim();
+        if (repName && repName.toLowerCase() !== 'unassigned') {
+          const alreadyExists = Array.from(map.values()).some(s => s.name.toLowerCase() === repName.toLowerCase());
+          if (!alreadyExists) {
+            const isLaiba = repName.toLowerCase() === 'laiba shahid';
+            const email = isLaiba ? 'salesspacesandplaces@gmail.com' : `${repName.toLowerCase().replace(/\s+/g, '.')}@nexleads.io`;
+            map.set(email, {
+              id: 'sp-' + encodeURIComponent(repName.toLowerCase().replace(/\s+/g, '-')),
+              name: repName,
+              email: email,
+              role: isLaiba ? 'Sales Operations Manager' : 'Sales Representative',
+              avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(repName)}`,
+              activeLeadsCount: 0
+            });
+          }
+        }
+      }
     }
 
+    const result = Array.from(map.values());
+    memorySalespersons = result;
     return res.json(result);
   } catch (error) {
     console.error('Error fetching salespersons:', error.message);
