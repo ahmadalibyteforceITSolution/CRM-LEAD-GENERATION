@@ -20,6 +20,15 @@ let memoryLeads = [];
 let memoryActivities = [];
 let memoryUsers = [
   {
+    id: 'user-sales-op',
+    name: 'Laiba (Sales Ops)',
+    email: 'salesspacesandplaces@gmail.com',
+    password: 'Laiba1234',
+    role: 'Sales Operations Manager',
+    companyName: 'Spaces & Places',
+    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80'
+  },
+  {
     id: 'user-admin',
     name: 'SuperAdmin',
     email: 'admin@nexleads.io',
@@ -66,7 +75,74 @@ let memoryUsers = [
   }
 ];
 
+let memorySalespersons = [
+  {
+    id: 'sp-sales-op',
+    name: 'Laiba (Sales Ops)',
+    email: 'salesspacesandplaces@gmail.com',
+    role: 'Sales Operations Manager',
+    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
+    activeLeadsCount: 0
+  },
+  {
+    id: 'sp-1',
+    name: 'Ali Raza',
+    email: 'ali.raza@nexleads.io',
+    role: 'Senior SDR / Closer',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    activeLeadsCount: 14
+  },
+  {
+    id: 'sp-2',
+    name: 'Sarah Jenkins',
+    email: 'sarah.j@nexleads.io',
+    role: 'Cold Outreach Specialist',
+    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
+    activeLeadsCount: 19
+  },
+  {
+    id: 'sp-3',
+    name: 'Michael Chang',
+    email: 'michael.c@nexleads.io',
+    role: 'Account Executive',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+    activeLeadsCount: 11
+  },
+  {
+    id: 'sp-4',
+    name: 'Priya Sharma',
+    email: 'priya.s@nexleads.io',
+    role: 'Inbound Lead Manager',
+    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
+    activeLeadsCount: 16
+  }
+];
+
 let cachedConnection = null;
+
+async function seedDatabaseIfEmpty() {
+  try {
+    if (mongoose.connection.readyState === 1) {
+      // Seed default users if missing
+      for (const u of memoryUsers) {
+        const exists = await UserModel.findOne({ email: u.email });
+        if (!exists) {
+          await UserModel.create(u);
+        }
+      }
+
+      // Seed salespersons if missing
+      for (const sp of memorySalespersons) {
+        const exists = await SalespersonModel.findOne({ email: sp.email });
+        if (!exists) {
+          await SalespersonModel.create(sp);
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Seeding notice:', err.message);
+  }
+}
 
 async function connectDB() {
   if (mongoose.connection.readyState === 1) {
@@ -75,8 +151,9 @@ async function connectDB() {
   if (!cachedConnection) {
     cachedConnection = mongoose.connect(MONGODB_URI, {
       serverSelectionTimeoutMS: 8000,
-    }).then(m => {
+    }).then(async (m) => {
       console.log('✅ Connected to MongoDB Atlas successfully (crm database)');
+      await seedDatabaseIfEmpty();
       return m.connection;
     }).catch(err => {
       cachedConnection = null;
@@ -108,6 +185,7 @@ app.get('/api/health', (req, res) => {
     database: isConnected ? 'Connected to MongoDB Atlas' : 'Connecting / In-Memory Active',
     databaseName: mongoose.connection.name || 'crm',
     leadsCount: memoryLeads.length,
+    salespersonsCount: memorySalespersons.length,
     timestamp: new Date().toISOString()
   });
 });
@@ -272,6 +350,23 @@ app.post('/api/auth/register', async (req, res) => {
       avatar
     };
 
+    const spData = {
+      id,
+      name: newUser.name,
+      email: cleanEmail,
+      role: newUser.role,
+      avatar,
+      activeLeadsCount: 0
+    };
+
+    // Update in-memory salespersons list
+    const spIndex = memorySalespersons.findIndex(s => s.email === cleanEmail);
+    if (spIndex >= 0) {
+      memorySalespersons[spIndex] = { ...memorySalespersons[spIndex], ...spData };
+    } else {
+      memorySalespersons.unshift(spData);
+    }
+
     if (mongoose.connection.readyState === 1) {
       const existing = await UserModel.findOne({ email: cleanEmail });
       if (existing) {
@@ -282,8 +377,8 @@ app.post('/api/auth/register', async (req, res) => {
       // Also register as salesperson
       await SalespersonModel.findOneAndUpdate(
         { email: cleanEmail },
-        { id, name: newUser.name, email: cleanEmail, role: newUser.role, avatar },
-        { upsert: true }
+        spData,
+        { upsert: true, new: true }
       );
 
       return res.status(201).json({
@@ -334,9 +429,33 @@ app.post('/api/auth/login', async (req, res) => {
 
     const cleanEmail = email.toLowerCase().trim();
 
+    // Helper to ensure user is also recorded as a salesperson
+    const ensureSalesperson = async (user) => {
+      const spData = {
+        id: user.id || ('sp-' + Date.now()),
+        name: user.name,
+        email: cleanEmail,
+        role: user.role || 'Sales Representative',
+        avatar: user.avatar || '',
+        activeLeadsCount: 0
+      };
+      const spIndex = memorySalespersons.findIndex(s => s.email === cleanEmail);
+      if (spIndex >= 0) {
+        memorySalespersons[spIndex] = { ...memorySalespersons[spIndex], ...spData };
+      } else {
+        memorySalespersons.unshift(spData);
+      }
+      if (mongoose.connection.readyState === 1) {
+        try {
+          await SalespersonModel.findOneAndUpdate({ email: cleanEmail }, spData, { upsert: true });
+        } catch (e) {}
+      }
+    };
+
     if (mongoose.connection.readyState === 1) {
       const user = await UserModel.findOne({ email: cleanEmail });
       if (user && user.password === password) {
+        await ensureSalesperson(user);
         return res.json({
           success: true,
           user: {
@@ -355,6 +474,7 @@ app.post('/api/auth/login', async (req, res) => {
     // Check memory users
     const memUser = memoryUsers.find(u => u.email === cleanEmail && u.password === password);
     if (memUser) {
+      await ensureSalesperson(memUser);
       return res.json({
         success: true,
         user: {
@@ -377,15 +497,139 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 // --- SALESPERSONS ENDPOINTS ---
+// GET all salespersons (merges DB, memory, and registered users)
 app.get('/api/salespersons', async (req, res) => {
   try {
+    let result = [...memorySalespersons];
+
     if (mongoose.connection.readyState === 1) {
-      const salespersons = await SalespersonModel.find();
-      if (salespersons.length > 0) return res.json(salespersons);
+      const dbSalespersons = await SalespersonModel.find();
+      const dbUsers = await UserModel.find();
+
+      const map = new Map();
+
+      // Load memory salespersons
+      for (const sp of memorySalespersons) {
+        map.set(sp.email.toLowerCase(), sp);
+      }
+
+      // Load DB salespersons
+      for (const sp of dbSalespersons) {
+        map.set(sp.email.toLowerCase(), {
+          id: sp.id,
+          name: sp.name,
+          email: sp.email,
+          role: sp.role,
+          avatar: sp.avatar,
+          activeLeadsCount: sp.activeLeadsCount || 0
+        });
+      }
+
+      // Ensure every registered user also appears as a salesperson option
+      for (const u of dbUsers) {
+        if (!map.has(u.email.toLowerCase())) {
+          map.set(u.email.toLowerCase(), {
+            id: u.id,
+            name: u.name,
+            email: u.email,
+            role: u.role || 'Sales Representative',
+            avatar: u.avatar || '',
+            activeLeadsCount: 0
+          });
+        }
+      }
+
+      result = Array.from(map.values());
+      memorySalespersons = result;
+      return res.json(result);
     }
-    return res.json([]);
+
+    return res.json(result);
   } catch (error) {
-    return res.json([]);
+    console.error('Error fetching salespersons:', error.message);
+    return res.json(memorySalespersons);
+  }
+});
+
+// POST save / add salesperson
+app.post('/api/salespersons', async (req, res) => {
+  try {
+    const spData = req.body;
+    if (!spData.name || !spData.email) {
+      return res.status(400).json({ error: 'Name and email are required' });
+    }
+    if (!spData.id) {
+      spData.id = 'sp-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7);
+    }
+
+    const cleanEmail = spData.email.toLowerCase().trim();
+    spData.email = cleanEmail;
+
+    const existingIndex = memorySalespersons.findIndex(s => s.email === cleanEmail);
+    if (existingIndex >= 0) {
+      memorySalespersons[existingIndex] = { ...memorySalespersons[existingIndex], ...spData };
+    } else {
+      memorySalespersons.unshift(spData);
+    }
+
+    if (mongoose.connection.readyState === 1) {
+      const saved = await SalespersonModel.findOneAndUpdate(
+        { email: cleanEmail },
+        spData,
+        { new: true, upsert: true }
+      );
+      return res.status(201).json(saved);
+    }
+
+    return res.status(201).json(spData);
+  } catch (error) {
+    console.error('Error saving salesperson:', error.message);
+    return res.status(201).json(req.body);
+  }
+});
+
+// POST bulk sync
+app.post('/api/sync', async (req, res) => {
+  try {
+    const { leads = [], activities = [], salespersons = [] } = req.body;
+
+    if (Array.isArray(leads) && leads.length > 0) {
+      memoryLeads = leads;
+      if (mongoose.connection.readyState === 1) {
+        for (const lead of leads) {
+          await LeadModel.findOneAndUpdate({ id: lead.id }, lead, { upsert: true });
+        }
+      }
+    }
+
+    if (Array.isArray(activities) && activities.length > 0) {
+      memoryActivities = activities;
+      if (mongoose.connection.readyState === 1) {
+        for (const act of activities) {
+          await ActivityModel.findOneAndUpdate({ id: act.id }, act, { upsert: true });
+        }
+      }
+    }
+
+    if (Array.isArray(salespersons) && salespersons.length > 0) {
+      for (const sp of salespersons) {
+        const cleanEmail = sp.email.toLowerCase().trim();
+        const idx = memorySalespersons.findIndex(s => s.email === cleanEmail);
+        if (idx >= 0) {
+          memorySalespersons[idx] = { ...memorySalespersons[idx], ...sp };
+        } else {
+          memorySalespersons.push(sp);
+        }
+        if (mongoose.connection.readyState === 1) {
+          await SalespersonModel.findOneAndUpdate({ email: cleanEmail }, sp, { upsert: true });
+        }
+      }
+    }
+
+    return res.json({ success: true, message: 'Synced successfully' });
+  } catch (error) {
+    console.error('Error syncing:', error.message);
+    return res.json({ success: false, error: error.message });
   }
 });
 

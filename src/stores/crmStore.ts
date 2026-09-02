@@ -19,12 +19,47 @@ import { apiService } from '../services/api';
 import confetti from 'canvas-confetti';
 
 export const useCRMStore = defineStore('crm', () => {
-  // --- Pure MongoDB Atlas Database State (NO localStorage) ---
+  // --- Pure MongoDB Atlas Database State (with resilient caching) ---
+  const getInitialSalespersons = (): Salesperson[] => {
+    try {
+      const cached = localStorage.getItem('nexleads_salespersons');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {}
+    return INITIAL_SALESPERSONS;
+  };
+
   const leads = ref<Lead[]>([]);
-  const salespersons = ref<Salesperson[]>(INITIAL_SALESPERSONS);
+  const salespersons = ref<Salesperson[]>(getInitialSalespersons());
   const activities = ref<ActivityHistoryItem[]>([]);
   const isDbConnected = ref<boolean>(true);
   const isLoading = ref<boolean>(false);
+
+  // Helper to ensure a user is in salespersons list and synced
+  function ensureSalespersonInList(user: { id?: string; name: string; email?: string; role?: string; avatar?: string }) {
+    if (!user || !user.name) return;
+    const cleanEmail = (user.email || '').toLowerCase().trim();
+    const existingIndex = salespersons.value.findIndex(
+      s => s.name.toLowerCase() === user.name.toLowerCase() || (cleanEmail && s.email.toLowerCase() === cleanEmail)
+    );
+    if (existingIndex < 0) {
+      salespersons.value.unshift({
+        id: user.id || ('sp-' + Date.now()),
+        name: user.name,
+        email: cleanEmail,
+        role: user.role || 'Sales Operations Manager',
+        avatar: user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(user.name)}`,
+        activeLeadsCount: 0
+      });
+    } else if (user.role && salespersons.value[existingIndex].role !== user.role) {
+      salespersons.value[existingIndex].role = user.role;
+    }
+    try {
+      localStorage.setItem('nexleads_salespersons', JSON.stringify(salespersons.value));
+    } catch (e) {}
+  }
 
   // Current active user & Authentication
   const currentUser = ref<User | null>(null);
@@ -91,6 +126,7 @@ export const useCRMStore = defineStore('crm', () => {
       if (res.success && res.user) {
         currentUser.value = res.user;
         currentSalesperson.value = res.user.name;
+        ensureSalespersonInList(res.user);
         localStorage.setItem('nexleads_auth_user', JSON.stringify(res.user));
         confetti({ particleCount: 50, spread: 60 });
         return true;
@@ -114,17 +150,7 @@ export const useCRMStore = defineStore('crm', () => {
       if (res.success && res.user) {
         currentUser.value = res.user;
         currentSalesperson.value = res.user.name;
-        // Add to salespersons list if not present
-        if (!salespersons.value.some(s => s.name === res.user?.name)) {
-          salespersons.value.unshift({
-            id: res.user.id,
-            name: res.user.name,
-            email: res.user.email,
-            role: res.user.role,
-            avatar: res.user.avatar || '',
-            activeLeadsCount: 0
-          });
-        }
+        ensureSalespersonInList(res.user);
         localStorage.setItem('nexleads_auth_user', JSON.stringify(res.user));
         confetti({ particleCount: 70, spread: 80 });
         return true;
@@ -152,6 +178,7 @@ export const useCRMStore = defineStore('crm', () => {
     };
     currentUser.value = demoUser;
     currentSalesperson.value = demoUser.name;
+    ensureSalespersonInList(demoUser);
     localStorage.setItem('nexleads_auth_user', JSON.stringify(demoUser));
     confetti({ particleCount: 40, spread: 50 });
   }
@@ -165,9 +192,10 @@ export const useCRMStore = defineStore('crm', () => {
   async function fetchAllFromDB() {
     isLoading.value = true;
     try {
-      const [dbLeads, dbActivities] = await Promise.all([
+      const [dbLeads, dbActivities, dbSalespersons] = await Promise.all([
         apiService.fetchLeads(),
-        apiService.fetchActivities()
+        apiService.fetchActivities(),
+        apiService.fetchSalespersons()
       ]);
 
       if (dbLeads && Array.isArray(dbLeads)) {
@@ -176,6 +204,28 @@ export const useCRMStore = defineStore('crm', () => {
       if (dbActivities && Array.isArray(dbActivities)) {
         activities.value = dbActivities;
       }
+      if (dbSalespersons && Array.isArray(dbSalespersons) && dbSalespersons.length > 0) {
+        const map = new Map<string, Salesperson>();
+        // Add initial salespersons
+        for (const sp of INITIAL_SALESPERSONS) {
+          map.set(sp.email.toLowerCase(), sp);
+        }
+        // Merge current in-memory
+        for (const sp of salespersons.value) {
+          map.set(sp.email.toLowerCase(), sp);
+        }
+        // Merge DB salespersons
+        for (const sp of dbSalespersons) {
+          map.set(sp.email.toLowerCase(), sp);
+        }
+        salespersons.value = Array.from(map.values());
+      }
+      if (currentUser.value) {
+        ensureSalespersonInList(currentUser.value);
+      }
+      try {
+        localStorage.setItem('nexleads_salespersons', JSON.stringify(salespersons.value));
+      } catch (e) {}
       isDbConnected.value = true;
     } catch (error) {
       console.error('Failed to fetch from MongoDB database:', error);
@@ -185,6 +235,17 @@ export const useCRMStore = defineStore('crm', () => {
   }
 
   async function initStore() {
+    // Restore cached salespersons if available
+    try {
+      const cachedSalespersons = localStorage.getItem('nexleads_salespersons');
+      if (cachedSalespersons) {
+        const parsed = JSON.parse(cachedSalespersons);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          salespersons.value = parsed;
+        }
+      }
+    } catch (e) {}
+
     // Check for existing session
     const savedUser = localStorage.getItem('nexleads_auth_user');
     if (savedUser) {
@@ -192,6 +253,7 @@ export const useCRMStore = defineStore('crm', () => {
         const parsed = JSON.parse(savedUser);
         currentUser.value = parsed;
         currentSalesperson.value = parsed.name || 'Ali Raza';
+        ensureSalespersonInList(parsed);
       } catch (e) {
         localStorage.removeItem('nexleads_auth_user');
       }
