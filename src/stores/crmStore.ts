@@ -20,15 +20,57 @@ import confetti from 'canvas-confetti';
 
 export const useCRMStore = defineStore('crm', () => {
   // --- Pure MongoDB Atlas Database State (with resilient caching) ---
+  function cleanAndDeduplicateSalespersons(list: Salesperson[]): Salesperson[] {
+    const map = new Map<string, Salesperson>();
+    for (const item of list) {
+      if (!item || !item.name) continue;
+      let name = item.name.trim();
+      let email = (item.email || '').toLowerCase().trim();
+      let role = item.role || 'Sales Representative';
+      let avatar = item.avatar || '';
+
+      // Normalize any variation of Laiba to single exact 'Laiba Shahid'
+      if (name.toLowerCase().includes('laiba') || email === 'salesspacesandplaces@gmail.com') {
+        name = 'Laiba Shahid';
+        email = 'salesspacesandplaces@gmail.com';
+        role = 'Sales Operations Manager';
+        avatar = 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80';
+      }
+
+      if (name.toLowerCase() === 'superadmin' || email === 'admin@nexleads.io') {
+        name = 'SuperAdmin';
+        email = 'admin@nexleads.io';
+        role = 'SuperAdmin';
+        avatar = 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80';
+      }
+
+      const key = name.toLowerCase();
+      if (!map.has(key)) {
+        map.set(key, {
+          ...item,
+          id: item.id || ('sp-' + encodeURIComponent(key.replace(/\s+/g, '-'))),
+          name,
+          email: email || `${key.replace(/\s+/g, '.')}@nexleads.io`,
+          role,
+          avatar: avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`,
+          activeLeadsCount: item.activeLeadsCount || 0
+        });
+      }
+    }
+    return Array.from(map.values());
+  }
+
   const getInitialSalespersons = (): Salesperson[] => {
     try {
       const cached = localStorage.getItem('nexleads_salespersons');
       if (cached) {
         const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return cleanAndDeduplicateSalespersons([...INITIAL_SALESPERSONS, ...parsed]);
+        }
       }
     } catch (e) {}
-    return INITIAL_SALESPERSONS;
+    return cleanAndDeduplicateSalespersons(INITIAL_SALESPERSONS);
   };
 
   const leads = ref<Lead[]>([]);
@@ -40,14 +82,20 @@ export const useCRMStore = defineStore('crm', () => {
   // Helper to ensure a user is in salespersons list and synced
   function ensureSalespersonInList(user: { id?: string; name: string; email?: string; role?: string; avatar?: string }) {
     if (!user || !user.name) return;
-    const cleanName = user.name.trim();
-    const cleanEmail = (user.email || '').toLowerCase().trim();
-    const existingIndex = salespersons.value.findIndex(
-      s => s.name.toLowerCase() === cleanName.toLowerCase() || (cleanEmail && s.email.toLowerCase() === cleanEmail)
-    );
+    let cleanName = user.name.trim();
+    let cleanEmail = (user.email || '').toLowerCase().trim();
+
+    if (cleanName.toLowerCase().includes('laiba') || cleanEmail === 'salesspacesandplaces@gmail.com') {
+      cleanName = 'Laiba Shahid';
+      cleanEmail = 'salesspacesandplaces@gmail.com';
+    }
 
     const isLaiba = cleanName.toLowerCase() === 'laiba shahid';
     const isSuperAdmin = cleanName.toLowerCase() === 'superadmin';
+
+    const existingIndex = salespersons.value.findIndex(
+      s => s.name.toLowerCase() === cleanName.toLowerCase() || (cleanEmail && s.email.toLowerCase() === cleanEmail)
+    );
 
     if (existingIndex < 0) {
       salespersons.value.push({
@@ -65,7 +113,10 @@ export const useCRMStore = defineStore('crm', () => {
       if (cleanEmail && !salespersons.value[existingIndex].email) {
         salespersons.value[existingIndex].email = cleanEmail;
       }
+      salespersons.value[existingIndex].name = cleanName;
     }
+
+    salespersons.value = cleanAndDeduplicateSalespersons(salespersons.value);
     try {
       localStorage.setItem('nexleads_salespersons', JSON.stringify(salespersons.value));
     } catch (e) {}
@@ -234,10 +285,20 @@ export const useCRMStore = defineStore('crm', () => {
         }
       }
 
+      // Normalize any lead assigned to old Laiba format
+      for (const lead of leads.value) {
+        if (lead.assignedSalesperson && lead.assignedSalesperson.toLowerCase().includes('laiba') && lead.assignedSalesperson !== 'Laiba Shahid') {
+          lead.assignedSalesperson = 'Laiba Shahid';
+        }
+      }
+
       // 4. Extract assigned reps from all existing leads
       for (const lead of leads.value) {
-        const rep = (lead.assignedSalesperson || '').trim();
+        let rep = (lead.assignedSalesperson || '').trim();
         if (rep && rep.toLowerCase() !== 'unassigned') {
+          if (rep.toLowerCase().includes('laiba')) {
+            rep = 'Laiba Shahid';
+          }
           const key = rep.toLowerCase();
           if (!map.has(key)) {
             const isLaiba = key === 'laiba shahid';
@@ -254,7 +315,7 @@ export const useCRMStore = defineStore('crm', () => {
         }
       }
 
-      salespersons.value = Array.from(map.values());
+      salespersons.value = cleanAndDeduplicateSalespersons(Array.from(map.values()));
 
       if (currentUser.value) {
         ensureSalespersonInList(currentUser.value);
@@ -271,13 +332,14 @@ export const useCRMStore = defineStore('crm', () => {
   }
 
   async function initStore() {
-    // Restore cached salespersons if available
+    // Restore and clean cached salespersons if available
     try {
       const cachedSalespersons = localStorage.getItem('nexleads_salespersons');
       if (cachedSalespersons) {
         const parsed = JSON.parse(cachedSalespersons);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          salespersons.value = parsed;
+          salespersons.value = cleanAndDeduplicateSalespersons(parsed);
+          localStorage.setItem('nexleads_salespersons', JSON.stringify(salespersons.value));
         }
       }
     } catch (e) {}
@@ -287,6 +349,12 @@ export const useCRMStore = defineStore('crm', () => {
     if (savedUser) {
       try {
         const parsed = JSON.parse(savedUser);
+        if (parsed.name && parsed.name.toLowerCase().includes('laiba')) {
+          parsed.name = 'Laiba Shahid';
+          parsed.email = 'salesspacesandplaces@gmail.com';
+          parsed.role = 'Sales Operations Manager';
+          localStorage.setItem('nexleads_auth_user', JSON.stringify(parsed));
+        }
         currentUser.value = parsed;
         currentSalesperson.value = parsed.name || 'Ali Raza';
         ensureSalespersonInList(parsed);

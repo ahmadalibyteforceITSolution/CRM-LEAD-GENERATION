@@ -128,14 +128,59 @@ let memorySalespersons = [
 
 let cachedConnection = null;
 
+function cleanAndNormalizeSalespersons(list) {
+  const map = new Map();
+  for (const item of list) {
+    if (!item || !item.name) continue;
+    let name = item.name.trim();
+    let email = (item.email || '').toLowerCase().trim();
+    let role = item.role || 'Sales Representative';
+    let avatar = item.avatar || '';
+
+    // Normalize any variation of Laiba (Sales Ops) to ONLY Laiba Shahid
+    if (name.toLowerCase().includes('laiba') || email === 'salesspacesandplaces@gmail.com') {
+      name = 'Laiba Shahid';
+      email = 'salesspacesandplaces@gmail.com';
+      role = 'Sales Operations Manager';
+      avatar = 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80';
+    }
+
+    if (name.toLowerCase() === 'superadmin' || email === 'admin@nexleads.io') {
+      name = 'SuperAdmin';
+      email = 'admin@nexleads.io';
+      role = 'SuperAdmin';
+      avatar = 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80';
+    }
+
+    const key = name.toLowerCase();
+    if (!map.has(key)) {
+      map.set(key, {
+        id: item.id || ('sp-' + encodeURIComponent(key.replace(/\s+/g, '-'))),
+        name,
+        email: email || `${key.replace(/\s+/g, '.')}@nexleads.io`,
+        role,
+        avatar: avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`,
+        activeLeadsCount: item.activeLeadsCount || 0
+      });
+    }
+  }
+  return Array.from(map.values());
+}
+
 async function seedDatabaseIfEmpty() {
   try {
     if (mongoose.connection.readyState === 1) {
+      // Purge any legacy 'Laiba (Sales Ops)' records so only 'Laiba Shahid' remains
+      await SalespersonModel.deleteMany({ name: /Sales Ops/i });
+      await UserModel.deleteMany({ name: /Sales Ops/i });
+
       // Seed default users if missing
       for (const u of memoryUsers) {
         const exists = await UserModel.findOne({ email: u.email });
         if (!exists) {
           await UserModel.create(u);
+        } else if (u.name === 'Laiba Shahid' && exists.name !== 'Laiba Shahid') {
+          await UserModel.updateOne({ email: u.email }, { name: 'Laiba Shahid' });
         }
       }
 
@@ -144,6 +189,8 @@ async function seedDatabaseIfEmpty() {
         const exists = await SalespersonModel.findOne({ email: sp.email });
         if (!exists) {
           await SalespersonModel.create(sp);
+        } else if (sp.name === 'Laiba Shahid' && exists.name !== 'Laiba Shahid') {
+          await SalespersonModel.updateOne({ email: sp.email }, { name: 'Laiba Shahid' });
         }
       }
     }
@@ -587,12 +634,12 @@ app.get('/api/salespersons', async (req, res) => {
       }
     }
 
-    const result = Array.from(map.values());
+    const result = cleanAndNormalizeSalespersons(Array.from(map.values()));
     memorySalespersons = result;
     return res.json(result);
   } catch (error) {
     console.error('Error fetching salespersons:', error.message);
-    return res.json(memorySalespersons);
+    return res.json(cleanAndNormalizeSalespersons(memorySalespersons));
   }
 });
 
