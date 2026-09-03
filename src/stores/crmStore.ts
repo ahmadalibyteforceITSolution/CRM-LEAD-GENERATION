@@ -79,6 +79,11 @@ export const useCRMStore = defineStore('crm', () => {
     delete base.$op;
     delete base.isNew;
 
+    // Ensure reliable string ID
+    if (!base.id && base._id) {
+      base.id = typeof base._id === 'string' ? base._id : base._id.toString();
+    }
+
     // Normalize salesperson name
     let rep = (base.assignedSalesperson || '').trim();
     if (rep.toLowerCase().includes('laiba')) {
@@ -207,6 +212,7 @@ export const useCRMStore = defineStore('crm', () => {
         try {
           sessionStorage.setItem('nexleads_auth_user', JSON.stringify(res.user));
         } catch (e) {}
+        await fetchAllFromDB();
         confetti({ particleCount: 50, spread: 60 });
         return true;
       } else {
@@ -233,6 +239,7 @@ export const useCRMStore = defineStore('crm', () => {
         try {
           sessionStorage.setItem('nexleads_auth_user', JSON.stringify(res.user));
         } catch (e) {}
+        await fetchAllFromDB();
         confetti({ particleCount: 70, spread: 80 });
         return true;
       } else {
@@ -247,7 +254,7 @@ export const useCRMStore = defineStore('crm', () => {
     }
   }
 
-  function loginDemoUser(demoEmail: string = 'salesspacesandplaces@gmail.com') {
+  async function loginDemoUser(demoEmail: string = 'salesspacesandplaces@gmail.com') {
     const sp = salespersons.value.find(s => s.email === demoEmail) || salespersons.value[0];
     const demoUser: User = {
       id: sp.id,
@@ -263,11 +270,17 @@ export const useCRMStore = defineStore('crm', () => {
     try {
       sessionStorage.setItem('nexleads_auth_user', JSON.stringify(demoUser));
     } catch (e) {}
+    await fetchAllFromDB();
     confetti({ particleCount: 40, spread: 50 });
   }
 
   function logoutUser() {
     currentUser.value = null;
+    currentSalesperson.value = '';
+    leads.value = [];
+    activities.value = [];
+    activeLeadId.value = null;
+    isDetailDrawerOpen.value = false;
     try {
       sessionStorage.removeItem('nexleads_auth_user');
       localStorage.clear();
@@ -276,6 +289,14 @@ export const useCRMStore = defineStore('crm', () => {
 
   // --- Fetch Directly from MongoDB Database (NO localStorage) ---
   async function fetchAllFromDB() {
+    // DO NOT FETCH FROM API IF USER IS LOGGED OUT / UNAUTHENTICATED
+    if (!currentUser.value) {
+      leads.value = [];
+      activities.value = [];
+      isLoading.value = false;
+      return;
+    }
+
     isLoading.value = true;
     try {
       const [dbLeads, dbActivities, dbSalespersons] = await Promise.all([
@@ -398,7 +419,10 @@ export const useCRMStore = defineStore('crm', () => {
       sessionStorage.removeItem('nexleads_auth_user');
     }
 
-    await fetchAllFromDB();
+    // ONLY fetch from DB if an authenticated user session is active!
+    if (currentUser.value) {
+      await fetchAllFromDB();
+    }
   }
 
   // --- Rule Compliance Engine ---
@@ -619,9 +643,11 @@ export const useCRMStore = defineStore('crm', () => {
   }
 
   async function updateLead(id: string, updates: Partial<Lead>) {
-    const idx = leads.value.findIndex(l => l.id === id);
+    if (!id) return;
+    const idx = leads.value.findIndex(l => l.id === id || (l as any)._id === id);
     if (idx === -1) return;
 
+    const actualId = leads.value[idx].id || id;
     const oldStage = leads.value[idx].stage;
     const finalUpdates = { ...updates };
     if (finalUpdates.assignedSalesperson) {
@@ -644,13 +670,15 @@ export const useCRMStore = defineStore('crm', () => {
     }
 
     // Save directly to MongoDB Database
-    await apiService.updateLead(id, finalUpdates);
+    await apiService.updateLead(actualId, finalUpdates);
   }
 
   async function updateLeadStage(id: string, newStage: PipelineStage) {
-    const lead = leads.value.find(l => l.id === id);
+    if (!id) return;
+    const lead = leads.value.find(l => l.id === id || (l as any)._id === id);
     if (!lead) return;
 
+    const actualId = lead.id || id;
     const oldStage = lead.stage;
     lead.stage = newStage;
     lead.updatedAt = new Date().toISOString();
@@ -658,10 +686,10 @@ export const useCRMStore = defineStore('crm', () => {
     const today = new Date().toISOString().split('T')[0];
     const nowTime = new Date().toTimeString().slice(0, 5);
 
-    await apiService.updateLead(id, { stage: newStage });
+    await apiService.updateLead(actualId, { stage: newStage });
 
     await addActivityItem({
-      leadId: id,
+      leadId: actualId,
       date: formatDate(today, 'dd MMM'),
       time: nowTime,
       channel: lead.preferredChannel || 'Cold Call',
@@ -683,14 +711,19 @@ export const useCRMStore = defineStore('crm', () => {
   }
 
   async function deleteLead(id: string) {
-    leads.value = leads.value.filter(l => l.id !== id);
-    activities.value = activities.value.filter(a => a.leadId !== id);
-    if (activeLeadId.value === id) {
+    if (!id) return;
+    const targetLead = leads.value.find(l => l.id === id || (l as any)._id === id);
+    const targetId = targetLead?.id || id;
+    const mongoId = (targetLead as any)?._id;
+
+    leads.value = leads.value.filter(l => l.id !== targetId && (l as any)._id !== targetId && (!mongoId || (l as any)._id !== mongoId));
+    activities.value = activities.value.filter(a => a.leadId !== targetId && (!mongoId || a.leadId !== mongoId));
+    if (activeLeadId.value === targetId || (mongoId && activeLeadId.value === mongoId)) {
       activeLeadId.value = null;
       isDetailDrawerOpen.value = false;
     }
     // Delete directly from MongoDB Database
-    await apiService.deleteLead(id);
+    await apiService.deleteLead(targetId);
   }
 
   // --- Activities & Logging directly to MongoDB ---
@@ -729,7 +762,8 @@ export const useCRMStore = defineStore('crm', () => {
       lead.priority = 'Not Qualified';
     }
 
-    await apiService.updateLead(lead.id, {
+    const actualLeadId = lead.id || (lead as any)._id;
+    await apiService.updateLead(actualLeadId, {
       totalCalls: lead.totalCalls,
       lastContactedBy: lead.lastContactedBy,
       lastContactDate: lead.lastContactDate,
@@ -749,7 +783,7 @@ export const useCRMStore = defineStore('crm', () => {
       : 'No follow up set';
 
     await addActivityItem({
-      leadId: callData.leadId,
+      leadId: actualLeadId,
       date: formatDate(callData.callDate, 'dd MMM'),
       time: callData.callTime,
       channel: 'Cold Call',
@@ -764,9 +798,10 @@ export const useCRMStore = defineStore('crm', () => {
 
   // Log WhatsApp directly to MongoDB
   async function logWhatsApp(waData: Omit<WhatsAppLog, 'id' | 'createdAt'>) {
-    const lead = leads.value.find(l => l.id === waData.leadId);
+    const lead = leads.value.find(l => l.id === waData.leadId || (l as any)._id === waData.leadId);
     if (!lead) return;
 
+    const actualLeadId = lead.id || (lead as any)._id;
     lead.totalWhatsApp = (lead.totalWhatsApp || 0) + 1;
     lead.lastContactedBy = currentSalesperson.value;
     lead.lastContactDate = waData.messageSentDate;
@@ -784,7 +819,7 @@ export const useCRMStore = defineStore('crm', () => {
       lead.stage = 'WhatsApp Sent';
     }
 
-    await apiService.updateLead(lead.id, {
+    await apiService.updateLead(actualLeadId, {
       totalWhatsApp: lead.totalWhatsApp,
       lastContactedBy: lead.lastContactedBy,
       lastContactDate: lead.lastContactDate,

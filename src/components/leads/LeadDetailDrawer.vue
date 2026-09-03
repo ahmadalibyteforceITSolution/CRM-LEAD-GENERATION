@@ -92,8 +92,11 @@ function handleQuickLogActivity() {
     attended = 'Rejected';
   }
 
+  const leadId = lead.value?.id || (lead.value as any)?._id;
+  if (!leadId) return;
+
   store.addActivityItem({
-    leadId: lead.value.id,
+    leadId,
     date: formatDate(today, 'dd MMM'),
     time: nowTime,
     channel,
@@ -106,56 +109,46 @@ function handleQuickLogActivity() {
   });
 
   // Update lead follow-up
-  if (lead.value) {
-    const leadUpdates: any = {
-      lastContactedBy: store.currentSalesperson,
-      lastContactDate: today,
-      lastContactTime: nowTime,
-      nextAction: newActivityType.value === 'not_qualified' ? 'Lead marked as Not Qualified' : newActivityNotes.value.slice(0, 50)
-    };
+  const leadUpdates: any = {
+    lastContactedBy: store.currentSalesperson,
+    lastContactDate: today,
+    lastContactTime: nowTime,
+    nextAction: newActivityType.value === 'not_qualified' ? 'Lead marked as Not Qualified' : newActivityNotes.value.slice(0, 50)
+  };
 
-    if (newActivityFollowUpDate.value) {
-      leadUpdates.nextFollowUpDate = newActivityFollowUpDate.value;
-      leadUpdates.nextFollowUpTime = newActivityFollowUpTime.value;
-    }
-
-    if (newActivityType.value === 'not_qualified') {
-      leadUpdates.priority = 'Not Qualified';
-      leadUpdates.notQualifiedReason = newActivityNotes.value.trim();
-    }
-
-    store.updateLead(lead.value.id, leadUpdates);
+  if (newActivityFollowUpDate.value) {
+    leadUpdates.nextFollowUpDate = newActivityFollowUpDate.value;
+    leadUpdates.nextFollowUpTime = newActivityFollowUpTime.value;
   }
+
+  if (newActivityType.value === 'not_qualified') {
+    leadUpdates.priority = 'Not Qualified';
+    leadUpdates.notQualifiedReason = newActivityNotes.value.trim();
+  }
+
+  store.updateLead(leadId, leadUpdates);
 
   newActivityNotes.value = '';
 }
 
 function handleFieldChange(field: string, value: any) {
   if (lead.value) {
+    const leadId = lead.value.id || (lead.value as any)._id;
+    if (!leadId) return;
+
     if (field === 'assignedSalesperson') {
       const confirmTransfer = confirm(`Are you sure you want to transfer lead "${lead.value.name}" to salesperson "${value}"?`);
       if (!confirmTransfer) {
-        // Revert select dropdown value in the DOM
-        const selectEl = document.querySelector('select[value="' + lead.value.assignedSalesperson + '"]') as HTMLSelectElement;
-        if (selectEl) {
-          selectEl.value = lead.value.assignedSalesperson;
-        }
-        // Force reactivity updates
-        const currentId = store.activeLeadId;
-        store.activeLeadId = '';
-        setTimeout(() => {
-          store.activeLeadId = currentId;
-        }, 10);
         return;
       }
-      store.updateLead(lead.value.id, {
+      store.updateLead(leadId, {
         assignedSalesperson: value,
         currentOwner: value,
         nextFollowUpOwner: value
       });
       return;
     }
-    store.updateLead(lead.value.id, { [field]: value });
+    store.updateLead(leadId, { [field]: value });
   }
 }
 
@@ -170,9 +163,10 @@ const budgetIndex = computed({
     return idx !== -1 ? idx : 1;
   },
   set: (idx: number) => {
-    if (lead.value) {
+    const leadId = lead.value?.id || (lead.value as any)?._id;
+    if (leadId) {
       const budgetVal = budgetOptions[idx];
-      store.updateLead(lead.value.id, { budgetRange: budgetVal, dealValue: getNumericDealValue(budgetVal) });
+      store.updateLead(leadId, { budgetRange: budgetVal, dealValue: getNumericDealValue(budgetVal) });
     }
   }
 });
@@ -184,8 +178,9 @@ const areaIndex = computed({
     return idx !== -1 ? idx : 1;
   },
   set: (idx: number) => {
-    if (lead.value) {
-      store.updateLead(lead.value.id, { areaSize: areaOptions[idx] });
+    const leadId = lead.value?.id || (lead.value as any)?._id;
+    if (leadId) {
+      store.updateLead(leadId, { areaSize: areaOptions[idx] });
     }
   }
 });
@@ -197,8 +192,9 @@ const timelineIndex = computed({
     return idx !== -1 ? idx : 0;
   },
   set: (idx: number) => {
-    if (lead.value) {
-      store.updateLead(lead.value.id, { timeline: timelineOptions[idx] });
+    const leadId = lead.value?.id || (lead.value as any)?._id;
+    if (leadId) {
+      store.updateLead(leadId, { timeline: timelineOptions[idx] });
     }
   }
 });

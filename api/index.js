@@ -217,20 +217,38 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Helper to build flexible MongoDB filter for id or _id
+function getLeadFilter(idParam) {
+  if (!idParam) return null;
+  const or = [{ id: idParam }];
+  if (mongoose.Types.ObjectId.isValid(idParam)) {
+    or.push({ _id: new mongoose.Types.ObjectId(idParam) });
+  }
+  return { $or: or };
+}
+
 // --- LEADS ENDPOINTS ---
 // GET all leads
 app.get('/api/leads', async (req, res) => {
   try {
     if (mongoose.connection.readyState === 1) {
       const leads = await LeadModel.find().sort({ createdAt: -1 }).lean();
-      memoryLeads = leads.map(toPlainObject);
+      memoryLeads = leads
+        .filter(l => l && (l.name || '').trim().length > 0) // Filter out corrupt nameless entries
+        .map(l => {
+          const plain = toPlainObject(l);
+          if (!plain.id && plain._id) {
+            plain.id = plain._id.toString();
+          }
+          return plain;
+        });
       return res.json(memoryLeads);
     }
     // Fallback if connecting
-    return res.json(memoryLeads.map(toPlainObject));
+    return res.json(memoryLeads.filter(l => l && (l.name || '').trim().length > 0));
   } catch (error) {
     console.error('Error fetching leads:', error.message);
-    return res.json(memoryLeads.map(toPlainObject));
+    return res.json(memoryLeads.filter(l => l && (l.name || '').trim().length > 0));
   }
 });
 
@@ -238,6 +256,13 @@ app.get('/api/leads', async (req, res) => {
 app.post('/api/leads', async (req, res) => {
   try {
     const leadData = toPlainObject(req.body);
+
+    // Strict validation: Require name!
+    if (!leadData.name || !leadData.name.trim()) {
+      return res.status(400).json({ error: 'Lead / Contact Name is required' });
+    }
+    leadData.name = leadData.name.trim();
+
     if (!leadData.id) {
       leadData.id = 'lead-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7);
     }
@@ -281,10 +306,18 @@ app.post('/api/leads', async (req, res) => {
   }
 });
 
-// PUT update lead
+// PUT update lead (NEVER UPSERT to prevent ghost empty records)
 app.put('/api/leads/:id', async (req, res) => {
   try {
+    const idParam = req.params.id;
+    const filter = getLeadFilter(idParam);
+    if (!filter) {
+      return res.status(400).json({ error: 'Lead ID is required' });
+    }
+
     const updates = toPlainObject(req.body);
+    delete updates.id; // Protect primary id from mutation
+    delete updates._id; // Protect MongoDB _id
     updates.updatedAt = new Date().toISOString();
 
     if (updates.assignedSalesperson) {
@@ -294,45 +327,65 @@ app.put('/api/leads/:id', async (req, res) => {
     }
 
     if (mongoose.connection.readyState === 1) {
+      // Find and update EXISTING lead ONLY - NO UPSERT
       const updatedLead = await LeadModel.findOneAndUpdate(
-        { id: req.params.id },
+        filter,
         { $set: updates },
-        { new: true, upsert: true, lean: true }
+        { new: true, upsert: false, lean: true }
       );
+
+      if (!updatedLead) {
+        return res.status(404).json({ error: 'Lead not found to update' });
+      }
+
       const cleanUpdated = toPlainObject(updatedLead);
-      const existingIndex = memoryLeads.findIndex(l => l.id === req.params.id);
+      const existingIndex = memoryLeads.findIndex(l => l.id === cleanUpdated.id || (l._id && l._id.toString() === cleanUpdated.id));
       if (existingIndex >= 0) {
         memoryLeads[existingIndex] = cleanUpdated;
-      } else {
-        memoryLeads.unshift(cleanUpdated);
       }
       return res.json(cleanUpdated);
     }
 
-    const existingIndex = memoryLeads.findIndex(l => l.id === req.params.id);
+    const existingIndex = memoryLeads.findIndex(l => l.id === idParam || (l._id && l._id.toString() === idParam));
     if (existingIndex >= 0) {
       memoryLeads[existingIndex] = toPlainObject({ ...memoryLeads[existingIndex], ...updates });
+      return res.json(memoryLeads[existingIndex]);
     }
-    return res.json(updates);
+    return res.status(404).json({ error: 'Lead not found in memory' });
   } catch (error) {
     console.error('Error updating lead:', error.message);
     return res.status(500).json({ error: error.message });
   }
 });
 
-// DELETE lead
+// DELETE lead (deletes by id or _id from MongoDB and activities)
 app.delete('/api/leads/:id', async (req, res) => {
   try {
-    memoryLeads = memoryLeads.filter(l => l.id !== req.params.id);
-    memoryActivities = memoryActivities.filter(a => a.leadId !== req.params.id);
-
-    if (mongoose.connection.readyState === 1) {
-      await LeadModel.findOneAndDelete({ id: req.params.id });
-      await ActivityModel.deleteMany({ leadId: req.params.id });
+    const idParam = req.params.id;
+    const filter = getLeadFilter(idParam);
+    if (!filter) {
+      return res.status(400).json({ error: 'Lead ID is required' });
     }
 
-    return res.json({ success: true, message: 'Lead deleted' });
+    if (mongoose.connection.readyState === 1) {
+      const deleted = await LeadModel.findOneAndDelete(filter).lean();
+      const actualId = deleted?.id || idParam;
+
+      memoryLeads = memoryLeads.filter(l => l.id !== idParam && l.id !== actualId && (!l._id || l._id.toString() !== idParam));
+      memoryActivities = memoryActivities.filter(a => a.leadId !== idParam && a.leadId !== actualId);
+
+      await ActivityModel.deleteMany({
+        $or: [{ leadId: idParam }, { leadId: actualId }]
+      });
+
+      return res.json({ success: true, message: 'Lead deleted successfully' });
+    }
+
+    memoryLeads = memoryLeads.filter(l => l.id !== idParam && (!l._id || l._id.toString() !== idParam));
+    memoryActivities = memoryActivities.filter(a => a.leadId !== idParam);
+    return res.json({ success: true, message: 'Lead deleted from memory' });
   } catch (error) {
+    console.error('Error deleting lead:', error.message);
     return res.status(500).json({ success: false, error: error.message });
   }
 });

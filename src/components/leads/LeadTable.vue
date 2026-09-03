@@ -62,6 +62,8 @@ function handleStageChange(lead: Lead, event: Event) {
 function handlePriorityChange(lead: Lead, event: Event) {
   const target = event.target as HTMLSelectElement;
   const newPriority = target.value as LeadPriority;
+  const leadId = lead.id || (lead as any)._id;
+  if (!leadId) return;
   
   if (newPriority === 'Not Qualified') {
     const reason = window.prompt(`Please enter the reason why lead "${lead.name}" is Not Qualified:`);
@@ -69,19 +71,23 @@ function handlePriorityChange(lead: Lead, event: Event) {
       target.value = lead.priority;
       return;
     }
-    store.updateLead(lead.id, { 
+    store.updateLead(leadId, { 
       priority: newPriority, 
       notQualifiedReason: reason.trim() 
     });
   } else {
-    store.updateLead(lead.id, { priority: newPriority });
+    store.updateLead(leadId, { priority: newPriority });
   }
 }
 
 function handleDeleteLead(lead: Lead, event: MouseEvent) {
   event.stopPropagation();
-  if (confirm(`Are you sure you want to delete lead "${lead.name}" (${lead.companyName})?`)) {
-    store.deleteLead(lead.id);
+  const leadTitle = lead.name || lead.companyName || 'this lead';
+  if (confirm(`Are you sure you want to delete lead "${leadTitle}"?`)) {
+    const targetId = lead.id || (lead as any)._id;
+    if (targetId) {
+      store.deleteLead(targetId);
+    }
   }
 }
 </script>
