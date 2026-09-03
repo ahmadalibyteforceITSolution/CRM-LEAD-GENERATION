@@ -23,7 +23,9 @@ import {
   CheckCircle2,
   Trash2,
   LayoutGrid,
-  Table as TableIcon
+  Table as TableIcon,
+  X,
+  AlertCircle
 } from 'lucide-vue-next';
 import { watch } from 'vue';
 
@@ -152,14 +154,61 @@ function handlePriorityChange(lead: Lead, event: Event) {
   }
 }
 
-function handleDeleteLead(lead: Lead, event: MouseEvent) {
-  event.stopPropagation();
-  const leadTitle = lead.name || lead.companyName || 'this lead';
-  if (confirm(`Are you sure you want to delete lead "${leadTitle}"?`)) {
-    const targetId = lead.id || (lead as any)._id;
-    if (targetId) {
-      store.deleteLead(targetId);
+// --- In-App Delete Confirmation Modal & Popup Toast (NO BROWSER ALERTS) ---
+const isDeleteConfirmModalOpen = ref(false);
+const leadToDelete = ref<Lead | null>(null);
+const isDeletingLead = ref(false);
+
+const toastMessage = ref<string | null>(null);
+const toastType = ref<'success' | 'error'>('success');
+let toastTimer: any = null;
+
+function showToast(msg: string, type: 'success' | 'error' = 'success') {
+  toastMessage.value = msg;
+  toastType.value = type;
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    toastMessage.value = null;
+  }, 4000);
+}
+
+function openDeleteModal(lead: Lead, event?: MouseEvent) {
+  if (event) event.stopPropagation();
+  leadToDelete.value = lead;
+  isDeleteConfirmModalOpen.value = true;
+}
+
+function closeDeleteModal() {
+  if (isDeletingLead.value) return;
+  isDeleteConfirmModalOpen.value = false;
+  leadToDelete.value = null;
+}
+
+async function executeDeleteLead() {
+  if (!leadToDelete.value) return;
+  const lead = leadToDelete.value;
+  const targetId = lead.id || (lead as any)._id;
+  const leadTitle = lead.name || lead.companyName || 'Lead';
+
+  if (!targetId) {
+    closeDeleteModal();
+    return;
+  }
+
+  isDeletingLead.value = true;
+  try {
+    const success = await store.deleteLead(targetId);
+    isDeletingLead.value = false;
+    isDeleteConfirmModalOpen.value = false;
+    leadToDelete.value = null;
+    if (success) {
+      showToast(`Lead "${leadTitle}" was permanently deleted from database.`, 'success');
+    } else {
+      showToast(`Lead "${leadTitle}" was removed.`, 'success');
     }
+  } catch (err: any) {
+    isDeletingLead.value = false;
+    showToast(`Failed to delete lead: ${err.message || 'Server error'}`, 'error');
   }
 }
 </script>
@@ -365,7 +414,7 @@ function handleDeleteLead(lead: Lead, event: MouseEvent) {
               Log Call
             </button>
             <button
-              @click="handleDeleteLead(lead, $event)"
+              @click="openDeleteModal(lead, $event)"
               class="p-1 text-slate-400 hover:text-rose-600"
             >
               <Trash2 class="w-3.5 h-3.5" />
@@ -572,7 +621,7 @@ function handleDeleteLead(lead: Lead, event: MouseEvent) {
 
                 <!-- Delete button -->
                 <button
-                  @click="handleDeleteLead(lead, $event)"
+                  @click="openDeleteModal(lead, $event)"
                   title="Delete Lead"
                   class="p-2 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-600 dark:hover:bg-rose-950/50 dark:hover:text-rose-400 transition-colors opacity-0 group-hover:opacity-100"
                 >
@@ -689,6 +738,114 @@ function handleDeleteLead(lead: Lead, event: MouseEvent) {
           title="Last Page"
         >
           <ChevronsRight class="w-3.5 h-3.5" />
+        </button>
+      </div>
+    </div>
+
+    <!-- Custom In-App Delete Confirmation Popup Modal (NO BROWSER ALERT) -->
+    <div
+      v-if="isDeleteConfirmModalOpen && leadToDelete"
+      class="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
+      @click.self="closeDeleteModal"
+    >
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl max-w-md w-full p-6 text-xs space-y-4 animate-in zoom-in-95 duration-200">
+        <!-- Warning Icon & Title -->
+        <div class="flex items-start gap-3.5">
+          <div class="w-12 h-12 rounded-2xl bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center flex-shrink-0 shadow-inner">
+            <Trash2 class="w-6 h-6" />
+          </div>
+          <div class="min-w-0 flex-1">
+            <h3 class="text-base font-extrabold text-slate-900 dark:text-white">Delete Lead</h3>
+            <p class="text-slate-500 dark:text-slate-400 text-xs mt-0.5">
+              Are you sure you want to permanently delete this lead?
+            </p>
+          </div>
+          <button
+            @click="closeDeleteModal"
+            class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg"
+          >
+            <X class="w-4 h-4" />
+          </button>
+        </div>
+
+        <!-- Lead Preview Card -->
+        <div class="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 space-y-2">
+          <div class="flex items-center justify-between gap-2">
+            <div class="font-bold text-slate-900 dark:text-white text-xs truncate">
+              {{ leadToDelete.name || 'Unnamed Lead' }}
+            </div>
+            <PriorityBadge :priority="leadToDelete.priority" size="sm" />
+          </div>
+          <div class="text-[11px] text-slate-500 flex items-center justify-between gap-2">
+            <span class="truncate">{{ leadToDelete.companyName || 'Individual' }}</span>
+            <span class="font-mono font-semibold text-slate-700 dark:text-slate-300">{{ leadToDelete.phoneNumber || 'No phone' }}</span>
+          </div>
+          <div class="text-[11px] text-slate-500 flex items-center justify-between gap-2 pt-1 border-t border-slate-200/50 dark:border-slate-700/50">
+            <span>Assigned: <strong class="text-slate-700 dark:text-slate-300">{{ leadToDelete.assignedSalesperson || 'Unassigned' }}</strong></span>
+            <span class="text-emerald-600 font-bold">Rs. {{ (leadToDelete.dealValue || 0).toLocaleString() }}</span>
+          </div>
+        </div>
+
+        <!-- Warning Disclaimer -->
+        <div class="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-[11px] text-amber-700 dark:text-amber-300 flex items-center gap-2">
+          <AlertCircle class="w-4 h-4 flex-shrink-0 text-amber-600 dark:text-amber-400" />
+          <span>This will permanently delete this lead from <strong>MongoDB Atlas</strong>. This action cannot be undone.</span>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <button
+            type="button"
+            @click="closeDeleteModal"
+            :disabled="isDeletingLead"
+            class="px-4 py-2 rounded-xl font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            @click="executeDeleteLead"
+            :disabled="isDeletingLead"
+            class="px-4 py-2 rounded-xl font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-md shadow-rose-600/30 flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+          >
+            <Trash2 class="w-3.5 h-3.5" />
+            <span>{{ isDeletingLead ? 'Deleting from Database...' : 'Yes, Delete Lead' }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Popup Notification (Green Check / Red Notice) -->
+    <div
+      v-if="toastMessage"
+      class="fixed top-5 right-5 z-50 max-w-sm w-full animate-in slide-in-from-top-5 duration-300"
+    >
+      <div
+        :class="[
+          'p-3.5 rounded-2xl shadow-2xl backdrop-blur border flex items-center gap-3',
+          toastType === 'success'
+            ? 'bg-slate-900/95 dark:bg-slate-900/95 text-white border-emerald-500/60 shadow-emerald-500/10'
+            : 'bg-rose-950/95 text-white border-rose-500/60 shadow-rose-500/10'
+        ]"
+      >
+        <div
+          :class="[
+            'w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0',
+            toastType === 'success' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'
+          ]"
+        >
+          <CheckCircle2 v-if="toastType === 'success'" class="w-4 h-4" />
+          <AlertCircle v-else class="w-4 h-4" />
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="font-bold text-xs">{{ toastType === 'success' ? 'Database Updated' : 'Notice' }}</div>
+          <div class="text-[11px] text-slate-300 truncate">{{ toastMessage }}</div>
+        </div>
+        <button
+          @click="toastMessage = null"
+          class="text-slate-400 hover:text-white p-1 rounded-lg"
+        >
+          <X class="w-3.5 h-3.5" />
         </button>
       </div>
     </div>

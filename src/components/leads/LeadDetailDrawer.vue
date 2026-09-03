@@ -26,7 +26,8 @@ import {
   ShieldCheck,
   Sparkles,
   History,
-  CheckCircle2
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-vue-next';
 
 const store = useCRMStore();
@@ -137,10 +138,6 @@ function handleFieldChange(field: string, value: any) {
     if (!leadId) return;
 
     if (field === 'assignedSalesperson') {
-      const confirmTransfer = confirm(`Are you sure you want to transfer lead "${lead.value.name}" to salesperson "${value}"?`);
-      if (!confirmTransfer) {
-        return;
-      }
       store.updateLead(leadId, {
         assignedSalesperson: value,
         currentOwner: value,
@@ -149,6 +146,27 @@ function handleFieldChange(field: string, value: any) {
       return;
     }
     store.updateLead(leadId, { [field]: value });
+  }
+}
+
+// In-App Delete Confirmation Modal (No Browser Alert)
+const isDeleteConfirmOpen = ref(false);
+const isDeleting = ref(false);
+
+async function handleDeleteLeadFromDrawer() {
+  if (!lead.value) return;
+  const leadId = lead.value.id || (lead.value as any)._id;
+  if (!leadId) return;
+
+  isDeleting.value = true;
+  try {
+    await store.deleteLead(leadId);
+    isDeleting.value = false;
+    isDeleteConfirmOpen.value = false;
+    closeDrawer();
+  } catch {
+    isDeleting.value = false;
+    isDeleteConfirmOpen.value = false;
   }
 }
 
@@ -266,6 +284,15 @@ function closeDrawer() {
             <MessageCircle class="w-3.5 h-3.5" />
             <span class="hidden sm:inline">WhatsApp</span>
             <span class="sm:hidden">WA</span>
+          </button>
+
+          <!-- Delete Lead Action -->
+          <button
+            @click="isDeleteConfirmOpen = true"
+            class="p-1.5 sm:p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+            title="Delete Lead"
+          >
+            <Trash2 class="w-4 h-4" />
           </button>
 
           <!-- Close -->
@@ -746,6 +773,61 @@ function closeDrawer() {
               </div>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- In-App Delete Confirmation Modal (NO BROWSER ALERT) -->
+    <div
+      v-if="isDeleteConfirmOpen && lead"
+      class="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
+      @click.self="isDeleteConfirmOpen = false"
+    >
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl max-w-md w-full p-6 text-xs space-y-4 animate-in zoom-in-95 duration-200">
+        <!-- Header -->
+        <div class="flex items-start gap-3.5">
+          <div class="w-12 h-12 rounded-2xl bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center flex-shrink-0 shadow-inner">
+            <Trash2 class="w-6 h-6" />
+          </div>
+          <div class="min-w-0 flex-1">
+            <h3 class="text-base font-extrabold text-slate-900 dark:text-white">Delete Lead</h3>
+            <p class="text-slate-500 dark:text-slate-400 text-xs mt-0.5">
+              Permanently delete <strong>{{ lead.name || lead.companyName }}</strong>?
+            </p>
+          </div>
+          <button
+            @click="isDeleteConfirmOpen = false"
+            class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg"
+          >
+            <X class="w-4 h-4" />
+          </button>
+        </div>
+
+        <!-- Warning Disclaimer -->
+        <div class="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-[11px] text-amber-700 dark:text-amber-300 flex items-center gap-2">
+          <AlertCircle class="w-4 h-4 flex-shrink-0 text-amber-600 dark:text-amber-400" />
+          <span>This will permanently delete this lead from <strong>MongoDB Atlas</strong>. This action cannot be undone.</span>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <button
+            type="button"
+            @click="isDeleteConfirmOpen = false"
+            :disabled="isDeleting"
+            class="px-4 py-2 rounded-xl font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            @click="handleDeleteLeadFromDrawer"
+            :disabled="isDeleting"
+            class="px-4 py-2 rounded-xl font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-md shadow-rose-600/30 flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+          >
+            <Trash2 class="w-3.5 h-3.5" />
+            <span>{{ isDeleting ? 'Deleting from Database...' : 'Yes, Delete Lead' }}</span>
+          </button>
         </div>
       </div>
     </div>

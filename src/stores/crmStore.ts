@@ -710,8 +710,8 @@ export const useCRMStore = defineStore('crm', () => {
     }
   }
 
-  async function deleteLead(id: string) {
-    if (!id) return;
+  async function deleteLead(id: string): Promise<boolean> {
+    if (!id) return false;
     const targetLead = leads.value.find(l => l.id === id || (l as any)._id === id);
     const targetId = targetLead?.id || id;
     const mongoId = (targetLead as any)?._id;
@@ -723,7 +723,7 @@ export const useCRMStore = defineStore('crm', () => {
       isDetailDrawerOpen.value = false;
     }
     // Delete directly from MongoDB Database
-    await apiService.deleteLead(targetId);
+    return await apiService.deleteLead(targetId);
   }
 
   // --- Activities & Logging directly to MongoDB ---
