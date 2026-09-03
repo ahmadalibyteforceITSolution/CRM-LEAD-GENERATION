@@ -231,6 +231,7 @@ function getLeadFilter(idParam) {
 // GET all leads
 app.get('/api/leads', async (req, res) => {
   try {
+    await connectDB();
     if (mongoose.connection.readyState === 1) {
       const leads = await LeadModel.find().sort({ createdAt: -1 }).lean();
       memoryLeads = leads
@@ -252,7 +253,7 @@ app.get('/api/leads', async (req, res) => {
   }
 });
 
-// POST create lead
+// POST create lead (strictly awaits DB and validates name)
 app.post('/api/leads', async (req, res) => {
   try {
     const leadData = toPlainObject(req.body);
@@ -275,6 +276,7 @@ app.post('/api/leads', async (req, res) => {
     if (!leadData.createdAt) leadData.createdAt = new Date().toISOString();
     leadData.updatedAt = new Date().toISOString();
 
+    await connectDB();
     if (mongoose.connection.readyState === 1) {
       const newLead = await LeadModel.findOneAndUpdate(
         { id: leadData.id },
@@ -291,15 +293,7 @@ app.post('/api/leads', async (req, res) => {
       return res.status(201).json(cleanSaved);
     }
 
-    // Keep memory in sync
-    const existingIndex = memoryLeads.findIndex(l => l.id === leadData.id);
-    if (existingIndex >= 0) {
-      memoryLeads[existingIndex] = { ...memoryLeads[existingIndex], ...leadData };
-    } else {
-      memoryLeads.unshift(leadData);
-    }
-
-    return res.status(201).json(leadData);
+    return res.status(500).json({ error: 'Database connection unavailable. Unable to persist lead.' });
   } catch (error) {
     console.error('Error saving lead:', error.message);
     return res.status(500).json({ error: error.message });
@@ -326,6 +320,7 @@ app.put('/api/leads/:id', async (req, res) => {
       if (!updates.nextFollowUpOwner) updates.nextFollowUpOwner = updates.assignedSalesperson;
     }
 
+    await connectDB();
     if (mongoose.connection.readyState === 1) {
       // Find and update EXISTING lead ONLY - NO UPSERT
       const updatedLead = await LeadModel.findOneAndUpdate(
@@ -346,12 +341,7 @@ app.put('/api/leads/:id', async (req, res) => {
       return res.json(cleanUpdated);
     }
 
-    const existingIndex = memoryLeads.findIndex(l => l.id === idParam || (l._id && l._id.toString() === idParam));
-    if (existingIndex >= 0) {
-      memoryLeads[existingIndex] = toPlainObject({ ...memoryLeads[existingIndex], ...updates });
-      return res.json(memoryLeads[existingIndex]);
-    }
-    return res.status(404).json({ error: 'Lead not found in memory' });
+    return res.status(500).json({ error: 'Database connection unavailable. Unable to update lead.' });
   } catch (error) {
     console.error('Error updating lead:', error.message);
     return res.status(500).json({ error: error.message });
@@ -367,6 +357,7 @@ app.delete('/api/leads/:id', async (req, res) => {
       return res.status(400).json({ error: 'Lead ID is required' });
     }
 
+    await connectDB();
     if (mongoose.connection.readyState === 1) {
       const deleted = await LeadModel.findOneAndDelete(filter).lean();
       const actualId = deleted?.id || idParam;
@@ -381,9 +372,7 @@ app.delete('/api/leads/:id', async (req, res) => {
       return res.json({ success: true, message: 'Lead deleted successfully' });
     }
 
-    memoryLeads = memoryLeads.filter(l => l.id !== idParam && (!l._id || l._id.toString() !== idParam));
-    memoryActivities = memoryActivities.filter(a => a.leadId !== idParam);
-    return res.json({ success: true, message: 'Lead deleted from memory' });
+    return res.status(500).json({ success: false, error: 'Database connection unavailable. Unable to delete lead.' });
   } catch (error) {
     console.error('Error deleting lead:', error.message);
     return res.status(500).json({ success: false, error: error.message });

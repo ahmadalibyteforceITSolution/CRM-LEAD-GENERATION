@@ -12,6 +12,9 @@ import {
   Clock,
   ExternalLink,
   ChevronRight,
+  ChevronLeft,
+  ChevronsLeft,
+  ChevronsRight,
   Filter,
   UserCheck,
   Building,
@@ -22,9 +25,78 @@ import {
   LayoutGrid,
   Table as TableIcon
 } from 'lucide-vue-next';
+import { watch } from 'vue';
 
 const store = useCRMStore();
 const mobileViewMode = ref<'cards' | 'table'>('cards');
+
+// --- Pagination State & Logic ---
+const currentPage = ref(1);
+const itemsPerPage = ref(10);
+const pageSizeOptions = [10, 25, 50, 100];
+
+// Reset to page 1 whenever any filter or search query changes
+watch(
+  [
+    () => store.searchQuery,
+    () => store.selectedStageFilter,
+    () => store.selectedPriorityFilter,
+    () => store.selectedSourceFilter,
+    () => store.selectedSalespersonFilter,
+    () => store.activeQueueFilter,
+    () => store.startDateFilter,
+    () => store.endDateFilter
+  ],
+  () => {
+    currentPage.value = 1;
+  }
+);
+
+// If filtered leads change and current page is out of range, clamp it
+watch(
+  () => store.filteredLeads.length,
+  (newLength) => {
+    const maxPage = Math.max(1, Math.ceil(newLength / itemsPerPage.value));
+    if (currentPage.value > maxPage) {
+      currentPage.value = maxPage;
+    }
+  }
+);
+
+const totalLeads = computed(() => store.filteredLeads.length);
+const totalPages = computed(() => Math.max(1, Math.ceil(totalLeads.value / itemsPerPage.value)));
+
+const paginatedLeads = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage.value;
+  return store.filteredLeads.slice(start, start + itemsPerPage.value);
+});
+
+const startItemIndex = computed(() => {
+  if (totalLeads.value === 0) return 0;
+  return (currentPage.value - 1) * itemsPerPage.value + 1;
+});
+
+const endItemIndex = computed(() => {
+  return Math.min(currentPage.value * itemsPerPage.value, totalLeads.value);
+});
+
+function goToPage(page: number) {
+  if (page >= 1 && page <= totalPages.value) {
+    currentPage.value = page;
+  }
+}
+
+function prevPage() {
+  if (currentPage.value > 1) {
+    currentPage.value--;
+  }
+}
+
+function nextPage() {
+  if (currentPage.value < totalPages.value) {
+    currentPage.value++;
+  }
+}
 
 const allStages: PipelineStage[] = [
   'New Lead',
@@ -192,7 +264,7 @@ function handleDeleteLead(lead: Lead, event: MouseEvent) {
       class="md:hidden flex-1 overflow-y-auto p-3 space-y-3"
     >
       <div
-        v-for="lead in store.filteredLeads"
+        v-for="lead in paginatedLeads"
         :key="'m-' + lead.id"
         @click="store.openLeadDetail(lead.id)"
         :class="[
@@ -344,7 +416,7 @@ function handleDeleteLead(lead: Lead, event: MouseEvent) {
 
         <tbody class="divide-y divide-slate-200/70 dark:divide-slate-800/70 bg-white/40 dark:bg-slate-900/40">
           <tr
-            v-for="lead in store.filteredLeads"
+            v-for="lead in paginatedLeads"
             :key="lead.id"
             @click="store.openLeadDetail(lead.id)"
             :class="[
@@ -530,6 +602,95 @@ function handleDeleteLead(lead: Lead, event: MouseEvent) {
           </tr>
         </tbody>
       </table>
+    </div>
+
+    <!-- Pagination Control Bar -->
+    <div
+      v-if="totalLeads > 0"
+      class="p-3 sm:px-4 sm:py-2.5 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs text-slate-600 dark:text-slate-400 z-10 flex-shrink-0"
+    >
+      <div class="flex items-center justify-between sm:justify-start gap-3">
+        <span class="font-medium text-slate-500">
+          Showing <span class="font-bold text-slate-800 dark:text-slate-200">{{ startItemIndex }}</span>–<span class="font-bold text-slate-800 dark:text-slate-200">{{ endItemIndex }}</span> of <span class="font-bold text-slate-800 dark:text-slate-200">{{ totalLeads }}</span> leads
+        </span>
+
+        <div class="flex items-center gap-1.5">
+          <span class="text-[11px] text-slate-400">Rows:</span>
+          <select
+            v-model.number="itemsPerPage"
+            @change="currentPage = 1"
+            class="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-xs font-semibold text-slate-700 dark:text-slate-300 focus:outline-none cursor-pointer"
+          >
+            <option v-for="size in pageSizeOptions" :key="size" :value="size">{{ size }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-center sm:justify-end gap-1">
+        <!-- First Page Button -->
+        <button
+          @click="goToPage(1)"
+          :disabled="currentPage === 1"
+          class="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          title="First Page"
+        >
+          <ChevronsLeft class="w-3.5 h-3.5" />
+        </button>
+
+        <!-- Prev Button -->
+        <button
+          @click="prevPage"
+          :disabled="currentPage === 1"
+          class="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          title="Previous Page"
+        >
+          <ChevronLeft class="w-3.5 h-3.5" />
+        </button>
+
+        <!-- Page Numbers -->
+        <div class="flex items-center gap-1 px-1">
+          <template v-for="p in totalPages" :key="p">
+            <button
+              v-if="p === 1 || p === totalPages || (p >= currentPage - 1 && p <= currentPage + 1)"
+              @click="goToPage(p)"
+              :class="[
+                'min-w-[28px] h-7 px-1.5 rounded-lg text-xs font-bold transition-colors flex items-center justify-center',
+                currentPage === p
+                  ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-600/30'
+                  : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300'
+              ]"
+            >
+              {{ p }}
+            </button>
+            <span
+              v-else-if="p === currentPage - 2 || p === currentPage + 2"
+              class="text-slate-400 px-0.5"
+            >
+              ...
+            </span>
+          </template>
+        </div>
+
+        <!-- Next Button -->
+        <button
+          @click="nextPage"
+          :disabled="currentPage === totalPages"
+          class="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          title="Next Page"
+        >
+          <ChevronRight class="w-3.5 h-3.5" />
+        </button>
+
+        <!-- Last Page Button -->
+        <button
+          @click="goToPage(totalPages)"
+          :disabled="currentPage === totalPages"
+          class="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          title="Last Page"
+        >
+          <ChevronsRight class="w-3.5 h-3.5" />
+        </button>
+      </div>
     </div>
   </div>
 </template>
