@@ -2,16 +2,43 @@ import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import dns from 'dns';
 import { LeadModel } from './models/Lead.js';
 import { ActivityModel } from './models/Activity.js';
 import { SalespersonModel } from './models/Salesperson.js';
 import { UserModel } from './models/User.js';
+
+// Configure reliable DNS servers to prevent querySrv ECONNREFUSED with MongoDB Atlas
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1']);
+} catch (e) {}
 
 dotenv.config();
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// Helper to convert any Mongoose document or wrapped object into a clean, plain JS object
+function toPlainObject(doc) {
+  if (!doc) return doc;
+  if (typeof doc.toObject === 'function') {
+    return doc.toObject();
+  }
+  let plain = doc;
+  if (doc._doc) {
+    plain = { ...doc._doc, ...doc };
+  } else {
+    plain = { ...doc };
+  }
+  delete plain.$__;
+  delete plain._doc;
+  delete plain.paths;
+  delete plain.$locals;
+  delete plain.$op;
+  delete plain.isNew;
+  return plain;
+}
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://ahmedalihafeez25_db_user:%40Sublime12345@cluster0.oe0inne.mongodb.net/crm?retryWrites=true&w=majority';
 
@@ -195,30 +222,49 @@ app.get('/api/health', (req, res) => {
 app.get('/api/leads', async (req, res) => {
   try {
     if (mongoose.connection.readyState === 1) {
-      const leads = await LeadModel.find().sort({ createdAt: -1 });
-      memoryLeads = leads;
-      return res.json(leads);
+      const leads = await LeadModel.find().sort({ createdAt: -1 }).lean();
+      memoryLeads = leads.map(toPlainObject);
+      return res.json(memoryLeads);
     }
     // Fallback if connecting
-    return res.json(memoryLeads);
+    return res.json(memoryLeads.map(toPlainObject));
   } catch (error) {
     console.error('Error fetching leads:', error.message);
-    return res.json(memoryLeads);
+    return res.json(memoryLeads.map(toPlainObject));
   }
 });
 
 // POST create lead
 app.post('/api/leads', async (req, res) => {
   try {
-    const leadData = req.body;
+    const leadData = toPlainObject(req.body);
     if (!leadData.id) {
       leadData.id = 'lead-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7);
     }
 
-    const rep = leadData.assignedSalesperson || 'SuperAdmin';
+    const rep = (leadData.assignedSalesperson || 'SuperAdmin').trim();
+    leadData.assignedSalesperson = rep;
     if (!leadData.currentOwner) leadData.currentOwner = rep;
     if (!leadData.nextFollowUpOwner) leadData.nextFollowUpOwner = rep;
     if (!leadData.assignedBy) leadData.assignedBy = rep;
+    if (!leadData.createdAt) leadData.createdAt = new Date().toISOString();
+    leadData.updatedAt = new Date().toISOString();
+
+    if (mongoose.connection.readyState === 1) {
+      const newLead = await LeadModel.findOneAndUpdate(
+        { id: leadData.id },
+        { $set: leadData },
+        { new: true, upsert: true, lean: true }
+      );
+      const cleanSaved = toPlainObject(newLead);
+      const existingIndex = memoryLeads.findIndex(l => l.id === leadData.id);
+      if (existingIndex >= 0) {
+        memoryLeads[existingIndex] = cleanSaved;
+      } else {
+        memoryLeads.unshift(cleanSaved);
+      }
+      return res.status(201).json(cleanSaved);
+    }
 
     // Keep memory in sync
     const existingIndex = memoryLeads.findIndex(l => l.id === leadData.id);
@@ -228,49 +274,49 @@ app.post('/api/leads', async (req, res) => {
       memoryLeads.unshift(leadData);
     }
 
-    if (mongoose.connection.readyState === 1) {
-      const newLead = await LeadModel.findOneAndUpdate(
-        { id: leadData.id },
-        leadData,
-        { new: true, upsert: true }
-      );
-      return res.status(201).json(newLead);
-    }
-
     return res.status(201).json(leadData);
   } catch (error) {
     console.error('Error saving lead:', error.message);
-    return res.status(201).json(req.body);
+    return res.status(500).json({ error: error.message });
   }
 });
 
 // PUT update lead
 app.put('/api/leads/:id', async (req, res) => {
   try {
-    const updates = { ...req.body, updatedAt: new Date().toISOString() };
+    const updates = toPlainObject(req.body);
+    updates.updatedAt = new Date().toISOString();
+
     if (updates.assignedSalesperson) {
+      updates.assignedSalesperson = updates.assignedSalesperson.trim();
       if (!updates.currentOwner) updates.currentOwner = updates.assignedSalesperson;
       if (!updates.nextFollowUpOwner) updates.nextFollowUpOwner = updates.assignedSalesperson;
-    }
-
-    const existingIndex = memoryLeads.findIndex(l => l.id === req.params.id);
-    if (existingIndex >= 0) {
-      memoryLeads[existingIndex] = { ...memoryLeads[existingIndex], ...updates };
     }
 
     if (mongoose.connection.readyState === 1) {
       const updatedLead = await LeadModel.findOneAndUpdate(
         { id: req.params.id },
-        updates,
-        { new: true, upsert: true }
+        { $set: updates },
+        { new: true, upsert: true, lean: true }
       );
-      return res.json(updatedLead);
+      const cleanUpdated = toPlainObject(updatedLead);
+      const existingIndex = memoryLeads.findIndex(l => l.id === req.params.id);
+      if (existingIndex >= 0) {
+        memoryLeads[existingIndex] = cleanUpdated;
+      } else {
+        memoryLeads.unshift(cleanUpdated);
+      }
+      return res.json(cleanUpdated);
     }
 
+    const existingIndex = memoryLeads.findIndex(l => l.id === req.params.id);
+    if (existingIndex >= 0) {
+      memoryLeads[existingIndex] = toPlainObject({ ...memoryLeads[existingIndex], ...updates });
+    }
     return res.json(updates);
   } catch (error) {
     console.error('Error updating lead:', error.message);
-    return res.json(req.body);
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -287,7 +333,7 @@ app.delete('/api/leads/:id', async (req, res) => {
 
     return res.json({ success: true, message: 'Lead deleted' });
   } catch (error) {
-    return res.json({ success: true });
+    return res.status(500).json({ success: false, error: error.message });
   }
 });
 
@@ -298,42 +344,47 @@ app.get('/api/activities', async (req, res) => {
     const { leadId } = req.query;
     if (mongoose.connection.readyState === 1) {
       const filter = leadId ? { leadId } : {};
-      const activities = await ActivityModel.find(filter).sort({ createdAt: -1 });
-      if (!leadId) memoryActivities = activities;
-      return res.json(activities);
+      const activities = await ActivityModel.find(filter).sort({ createdAt: -1 }).lean();
+      const cleanActivities = activities.map(toPlainObject);
+      if (!leadId) memoryActivities = cleanActivities;
+      return res.json(cleanActivities);
     }
 
     const filtered = leadId ? memoryActivities.filter(a => a.leadId === leadId) : memoryActivities;
-    return res.json(filtered);
+    return res.json(filtered.map(toPlainObject));
   } catch (error) {
     console.error('Error fetching activities:', error.message);
     const filtered = req.query.leadId ? memoryActivities.filter(a => a.leadId === req.query.leadId) : memoryActivities;
-    return res.json(filtered);
+    return res.json(filtered.map(toPlainObject));
   }
 });
 
 // POST save activity
 app.post('/api/activities', async (req, res) => {
   try {
-    const actData = req.body;
+    const actData = toPlainObject(req.body);
     if (!actData.id) {
       actData.id = 'act-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7);
     }
-
-    memoryActivities.unshift(actData);
+    if (!actData.createdAt) {
+      actData.createdAt = new Date().toISOString();
+    }
 
     if (mongoose.connection.readyState === 1) {
       const newActivity = await ActivityModel.findOneAndUpdate(
         { id: actData.id },
-        actData,
-        { new: true, upsert: true }
+        { $set: actData },
+        { new: true, upsert: true, lean: true }
       );
-      return res.status(201).json(newActivity);
+      const cleanActivity = toPlainObject(newActivity);
+      memoryActivities.unshift(cleanActivity);
+      return res.status(201).json(cleanActivity);
     }
 
+    memoryActivities.unshift(actData);
     return res.status(201).json(actData);
   } catch (error) {
-    return res.status(201).json(req.body);
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -517,9 +568,9 @@ app.get('/api/salespersons', async (req, res) => {
     }
 
     if (mongoose.connection.readyState === 1) {
-      const dbSalespersons = await SalespersonModel.find();
-      const dbUsers = await UserModel.find();
-      const dbLeads = await LeadModel.find();
+      const dbSalespersons = await SalespersonModel.find().lean();
+      const dbUsers = await UserModel.find().lean();
+      const dbLeads = await LeadModel.find().lean();
 
       // Load DB salespersons
       for (const sp of dbSalespersons) {
@@ -600,7 +651,7 @@ app.get('/api/salespersons', async (req, res) => {
 // POST save / add salesperson
 app.post('/api/salespersons', async (req, res) => {
   try {
-    const spData = req.body;
+    const spData = toPlainObject(req.body);
     if (!spData.name || !spData.email) {
       return res.status(400).json({ error: 'Name and email are required' });
     }
@@ -621,16 +672,16 @@ app.post('/api/salespersons', async (req, res) => {
     if (mongoose.connection.readyState === 1) {
       const saved = await SalespersonModel.findOneAndUpdate(
         { email: cleanEmail },
-        spData,
-        { new: true, upsert: true }
+        { $set: spData },
+        { new: true, upsert: true, lean: true }
       );
-      return res.status(201).json(saved);
+      return res.status(201).json(toPlainObject(saved));
     }
 
     return res.status(201).json(spData);
   } catch (error) {
     console.error('Error saving salesperson:', error.message);
-    return res.status(201).json(req.body);
+    return res.status(500).json({ error: error.message });
   }
 });
 
@@ -640,34 +691,39 @@ app.post('/api/sync', async (req, res) => {
     const { leads = [], activities = [], salespersons = [] } = req.body;
 
     if (Array.isArray(leads) && leads.length > 0) {
-      memoryLeads = leads;
+      const cleanLeads = leads.map(toPlainObject);
+      memoryLeads = cleanLeads;
       if (mongoose.connection.readyState === 1) {
-        for (const lead of leads) {
-          await LeadModel.findOneAndUpdate({ id: lead.id }, lead, { upsert: true });
+        for (const lead of cleanLeads) {
+          await LeadModel.findOneAndUpdate({ id: lead.id }, { $set: lead }, { upsert: true, lean: true });
         }
       }
     }
 
     if (Array.isArray(activities) && activities.length > 0) {
-      memoryActivities = activities;
+      const cleanActivities = activities.map(toPlainObject);
+      memoryActivities = cleanActivities;
       if (mongoose.connection.readyState === 1) {
-        for (const act of activities) {
-          await ActivityModel.findOneAndUpdate({ id: act.id }, act, { upsert: true });
+        for (const act of cleanActivities) {
+          await ActivityModel.findOneAndUpdate({ id: act.id }, { $set: act }, { upsert: true, lean: true });
         }
       }
     }
 
     if (Array.isArray(salespersons) && salespersons.length > 0) {
       for (const sp of salespersons) {
-        const cleanEmail = sp.email.toLowerCase().trim();
+        const cleanSp = toPlainObject(sp);
+        const cleanEmail = (cleanSp.email || '').toLowerCase().trim();
+        if (!cleanEmail) continue;
+        cleanSp.email = cleanEmail;
         const idx = memorySalespersons.findIndex(s => s.email === cleanEmail);
         if (idx >= 0) {
-          memorySalespersons[idx] = { ...memorySalespersons[idx], ...sp };
+          memorySalespersons[idx] = { ...memorySalespersons[idx], ...cleanSp };
         } else {
-          memorySalespersons.push(sp);
+          memorySalespersons.push(cleanSp);
         }
         if (mongoose.connection.readyState === 1) {
-          await SalespersonModel.findOneAndUpdate({ email: cleanEmail }, sp, { upsert: true });
+          await SalespersonModel.findOneAndUpdate({ email: cleanEmail }, { $set: cleanSp }, { upsert: true, lean: true });
         }
       }
     }
@@ -675,7 +731,7 @@ app.post('/api/sync', async (req, res) => {
     return res.json({ success: true, message: 'Synced successfully' });
   } catch (error) {
     console.error('Error syncing:', error.message);
-    return res.json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
 });
 

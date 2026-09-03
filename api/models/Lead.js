@@ -47,7 +47,7 @@ const LeadSchema = new mongoose.Schema({
   createdAt: { type: String, default: () => new Date().toISOString() },
   updatedAt: { type: String, default: () => new Date().toISOString() }
 }, {
-  timestamps: true
+  timestamps: false
 });
 
 export const LeadModel = mongoose.models.Lead || mongoose.model('Lead', LeadSchema);

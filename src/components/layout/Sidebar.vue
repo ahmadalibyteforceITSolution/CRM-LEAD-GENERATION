@@ -254,7 +254,7 @@ const queuesList = computed(() => [
                 <span class="truncate font-medium">{{ rep.name }}</span>
               </div>
               <span class="text-[10px] text-slate-500 dark:text-slate-400">
-                {{ store.leads.filter(l => l.assignedSalesperson === rep.name).length }} leads
+                {{ store.leads.filter(l => (l.assignedSalesperson || '').trim().toLowerCase() === rep.name.trim().toLowerCase()).length }} leads
               </span>
             </div>
           </template>

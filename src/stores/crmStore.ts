@@ -64,6 +64,31 @@ export const useCRMStore = defineStore('crm', () => {
     return Array.from(map.values());
   }
 
+  function sanitizeLead(l: any): Lead {
+    if (!l) return l;
+    let base: any = l;
+    if (l._doc) {
+      base = { ...l._doc, ...l };
+    } else {
+      base = { ...l };
+    }
+    delete base.$__;
+    delete base._doc;
+    delete base.paths;
+    delete base.$locals;
+    delete base.$op;
+    delete base.isNew;
+
+    // Normalize salesperson name
+    let rep = (base.assignedSalesperson || '').trim();
+    if (rep.toLowerCase().includes('laiba')) {
+      rep = 'Laiba Shahid';
+    }
+    base.assignedSalesperson = rep;
+
+    return base as Lead;
+  }
+
   const leads = ref<Lead[]>([]);
   const salespersons = ref<Salesperson[]>(cleanAndDeduplicateSalespersons(INITIAL_SALESPERSONS));
   const activities = ref<ActivityHistoryItem[]>([]);
@@ -260,10 +285,16 @@ export const useCRMStore = defineStore('crm', () => {
       ]);
 
       if (dbLeads && Array.isArray(dbLeads)) {
-        leads.value = dbLeads;
+        leads.value = dbLeads.map(sanitizeLead);
       }
       if (dbActivities && Array.isArray(dbActivities)) {
-        activities.value = dbActivities;
+        activities.value = dbActivities.map((a: any) => {
+          const clean = a._doc ? { ...a._doc, ...a } : { ...a };
+          delete clean.$__;
+          delete clean._doc;
+          delete clean.paths;
+          return clean;
+        });
       }
 
       // Normalize any lead assigned to old demo reps so they belong to Laiba Shahid or SuperAdmin
@@ -457,7 +488,9 @@ export const useCRMStore = defineStore('crm', () => {
     return leads.value.filter(lead => {
       // Respect role-based access: SuperAdmin, Admin, and Sales Operations Manager can see all leads
       if (currentUser.value && currentUser.value.role !== 'SuperAdmin' && currentUser.value.role !== 'Admin' && currentUser.value.role !== 'Sales Operations Manager') {
-        if (lead.assignedSalesperson !== currentUser.value.name) return false;
+        const leadRep = (lead.assignedSalesperson || '').trim().toLowerCase();
+        const userRep = (currentUser.value.name || '').trim().toLowerCase();
+        if (leadRep !== userRep) return false;
       }
 
       if (activeQueueFilter.value === 'due_today' && !queueFollowUpsDueToday.value.some(l => l.id === lead.id)) return false;
@@ -472,7 +505,11 @@ export const useCRMStore = defineStore('crm', () => {
       if (selectedStageFilter.value !== 'all' && lead.stage !== selectedStageFilter.value) return false;
       if (selectedPriorityFilter.value !== 'all' && lead.priority !== selectedPriorityFilter.value) return false;
       if (selectedSourceFilter.value !== 'all' && lead.leadSource !== selectedSourceFilter.value) return false;
-      if (selectedSalespersonFilter.value !== 'all' && lead.assignedSalesperson !== selectedSalespersonFilter.value) return false;
+      if (selectedSalespersonFilter.value !== 'all') {
+        const leadRep = (lead.assignedSalesperson || '').trim().toLowerCase();
+        const filterRep = selectedSalespersonFilter.value.trim().toLowerCase();
+        if (leadRep !== filterRep) return false;
+      }
 
       // Date range filtering
       if (startDateFilter.value) {

@@ -25,13 +25,13 @@ const store = useCRMStore();
 const authMode = ref<'login' | 'signup'>('login');
 
 // Form state
-const loginEmail = ref('ali.raza@nexleads.io');
-const loginPassword = ref('password123');
+const loginEmail = ref('');
+const loginPassword = ref('');
 const rememberMe = ref(true);
 const showPassword = ref(false);
 
 function handleForgotPassword() {
-  window.alert('Demo account password: password123');
+  window.alert('Please contact your CRM administrator to reset your password.');
 }
 
 // Sign up state
@@ -108,12 +108,6 @@ async function handleSignup() {
   if (!success) {
     localError.value = store.authError || 'Failed to create account. Please try again.';
   }
-}
-
-function handleDemoLogin(email: string) {
-  loginEmail.value = email;
-  loginPassword.value = 'password123';
-  store.loginDemoUser(email);
 }
 </script>
 
@@ -233,16 +227,6 @@ function handleDemoLogin(email: string) {
                 Create Account
               </button>
             </div>
-
-            <!-- Quick Demo Bypass Button -->
-            <button
-              type="button"
-              @click="handleDemoLogin('ali.raza@nexleads.io')"
-              class="text-xs font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1.5 bg-indigo-950/70 hover:bg-indigo-900/90 px-3 py-1.5 rounded-xl border border-indigo-800 transition-all active:scale-95"
-            >
-              <Zap class="w-3.5 h-3.5 text-amber-400" />
-              <span>Instant Demo Mode</span>
-            </button>
           </div>
 
           <!-- Error Alert Banner -->
