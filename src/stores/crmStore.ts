@@ -190,6 +190,8 @@ export const useCRMStore = defineStore('crm', () => {
 
   // Modals & Drawers
   const isCreateLeadModalOpen = ref(false);
+  const isEditLeadModalOpen = ref(false);
+  const editingLeadId = ref<string | null>(null);
   const isQuickCallModalOpen = ref(false);
   const isQuickWhatsAppModalOpen = ref(false);
   const isImportExportModalOpen = ref(false);
@@ -455,6 +457,11 @@ export const useCRMStore = defineStore('crm', () => {
   const activeLead = computed(() => {
     if (!activeLeadId.value) return null;
     return leads.value.find(l => l.id === activeLeadId.value || (l as any)._id === activeLeadId.value) || null;
+  });
+
+  const editingLead = computed(() => {
+    if (!editingLeadId.value) return null;
+    return leads.value.find(l => l.id === editingLeadId.value || (l as any)._id === editingLeadId.value) || null;
   });
 
   const activeLeadActivities = computed(() => {
@@ -892,6 +899,12 @@ export const useCRMStore = defineStore('crm', () => {
     isQuickWhatsAppModalOpen.value = true;
   }
 
+  function openEditLead(leadId: string) {
+    const lead = leads.value.find(l => l.id === leadId || (l as any)._id === leadId);
+    editingLeadId.value = lead?.id || leadId;
+    isEditLeadModalOpen.value = true;
+  }
+
   // CSV Export & Import directly with MongoDB
   function exportLeadsToCSV() {
     const headers = [
@@ -1075,6 +1088,8 @@ export const useCRMStore = defineStore('crm', () => {
 
     // Modals
     isCreateLeadModalOpen,
+    isEditLeadModalOpen,
+    editingLeadId,
     isQuickCallModalOpen,
     isQuickWhatsAppModalOpen,
     isImportExportModalOpen,
@@ -1084,6 +1099,7 @@ export const useCRMStore = defineStore('crm', () => {
 
     // Computed
     activeLead,
+    editingLead,
     activeLeadActivities,
     queueFollowUpsDueToday,
     queueUpcomingFollowUps,
@@ -1111,6 +1127,7 @@ export const useCRMStore = defineStore('crm', () => {
     openLeadDetail,
     openQuickCall,
     openQuickWhatsApp,
+    openEditLead,
     exportLeadsToCSV,
     importLeadsFromCSV
   };

@@ -13,7 +13,8 @@ import {
   Plus,
   ArrowRight,
   Sparkles,
-  MoveRight
+  MoveRight,
+  Pencil
 } from 'lucide-vue-next';
 
 const store = useCRMStore();
@@ -208,6 +209,13 @@ function moveToNextStage(lead: Lead, event: MouseEvent) {
               <RuleHealthBadge :lead="lead" />
 
               <div class="flex items-center gap-1">
+                <button
+                  @click="store.openEditLead(lead.id)"
+                  title="Edit Lead Profile"
+                  class="p-1 rounded-md bg-amber-50 hover:bg-amber-600 text-amber-600 hover:text-white dark:bg-amber-950 dark:hover:bg-amber-600 dark:text-amber-300 transition-colors"
+                >
+                  <Pencil class="w-3 h-3" />
+                </button>
                 <button
                   @click="store.openQuickCall(lead.id)"
                   title="Cold Call"

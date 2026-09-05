@@ -13,6 +13,7 @@ import LeadDetailDrawer from '@/components/leads/LeadDetailDrawer.vue';
 import QuickCallModal from '@/components/leads/QuickCallModal.vue';
 import QuickWhatsAppModal from '@/components/leads/QuickWhatsAppModal.vue';
 import CreateLeadModal from '@/components/leads/CreateLeadModal.vue';
+import EditLeadModal from '@/components/leads/EditLeadModal.vue';
 import ImportExportModal from '@/components/leads/ImportExportModal.vue';
 
 const store = useCRMStore();
@@ -53,6 +54,7 @@ onMounted(() => {
     <QuickCallModal />
     <QuickWhatsAppModal />
     <CreateLeadModal />
+    <EditLeadModal />
     <ImportExportModal />
   </div>
 </template>

@@ -77,6 +77,12 @@ async function handleLogin() {
   }
 }
 
+async function quickLogin(email: string, pass: string) {
+  loginEmail.value = email;
+  loginPassword.value = pass;
+  await handleLogin();
+}
+
 async function handleSignup() {
   localError.value = '';
   if (!signupName.value.trim()) {
@@ -297,7 +303,45 @@ async function handleSignup() {
               <ArrowRight class="w-4 h-4" />
             </button>
 
-            
+            <!-- 1-Click Quick Login Accounts -->
+            <div class="pt-3 border-t border-slate-800/80 space-y-2">
+              <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 text-center">
+                Or 1-Click Quick Login
+              </div>
+              <div class="grid grid-cols-2 gap-2">
+                <!-- Laiba Khan Quick Login -->
+                <button
+                  type="button"
+                  @click="quickLogin('salesspacesandplaces@gmail.com', 'Laiba1234')"
+                  class="p-2 rounded-xl bg-slate-950 hover:bg-slate-800/80 border border-slate-800 hover:border-emerald-500/60 text-left transition-all flex items-center gap-2 group"
+                >
+                  <img
+                    src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80"
+                    class="w-7 h-7 rounded-full object-cover border border-emerald-500/40 flex-shrink-0"
+                  />
+                  <div class="min-w-0">
+                    <div class="text-xs font-bold text-white group-hover:text-emerald-400 truncate">Laiba Khan</div>
+                    <div class="text-[10px] text-slate-400 truncate">Sales Ops Manager</div>
+                  </div>
+                </button>
+
+                <!-- SuperAdmin Quick Login -->
+                <button
+                  type="button"
+                  @click="quickLogin('admin@nexleads.io', 'password123')"
+                  class="p-2 rounded-xl bg-slate-950 hover:bg-slate-800/80 border border-slate-800 hover:border-indigo-500/60 text-left transition-all flex items-center gap-2 group"
+                >
+                  <img
+                    src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80"
+                    class="w-7 h-7 rounded-full object-cover border border-indigo-500/40 flex-shrink-0"
+                  />
+                  <div class="min-w-0">
+                    <div class="text-xs font-bold text-white group-hover:text-indigo-400 truncate">SuperAdmin</div>
+                    <div class="text-[10px] text-slate-400 truncate">Agency Owner</div>
+                  </div>
+                </button>
+              </div>
+            </div>
           </form>
 
           <!-- ==================== SIGN UP FORM ==================== -->

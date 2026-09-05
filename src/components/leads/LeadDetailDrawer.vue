@@ -27,7 +27,8 @@ import {
   Sparkles,
   History,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Pencil
 } from 'lucide-vue-next';
 
 const store = useCRMStore();
@@ -269,6 +270,17 @@ function closeDrawer() {
         </div>
 
         <div class="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+          <!-- Edit Profile Action -->
+          <button
+            @click="store.openEditLead(lead.id)"
+            class="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shadow-md shadow-amber-500/20 transition-all active:scale-[0.98]"
+            title="Edit All Lead Profile Details"
+          >
+            <Pencil class="w-3.5 h-3.5" />
+            <span class="hidden sm:inline">Edit Profile</span>
+            <span class="sm:hidden">Edit</span>
+          </button>
+
           <!-- Cold Call Action -->
           <button
             @click="store.openQuickCall(lead.id)"

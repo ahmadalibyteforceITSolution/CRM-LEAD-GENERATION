@@ -25,7 +25,8 @@ import {
   LayoutGrid,
   Table as TableIcon,
   X,
-  AlertCircle
+  AlertCircle,
+  Pencil
 } from 'lucide-vue-next';
 import { watch } from 'vue';
 
@@ -419,6 +420,14 @@ function resetAllFilters() {
 
           <div class="flex items-center gap-1.5">
             <button
+              @click="store.openEditLead(lead.id)"
+              class="px-2 py-1 rounded-lg bg-amber-50 hover:bg-amber-600 text-amber-600 hover:text-white dark:bg-amber-950 dark:text-amber-300 text-xs font-bold transition-colors flex items-center gap-1"
+              title="Edit Lead Profile"
+            >
+              <Pencil class="w-3 h-3" />
+              <span>Edit</span>
+            </button>
+            <button
               @click="store.openQuickCall(lead.id)"
               class="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white dark:bg-indigo-950 dark:text-indigo-300 text-xs font-bold transition-colors"
             >
@@ -637,6 +646,15 @@ function resetAllFilters() {
             <!-- Action Buttons -->
             <td class="py-3.5 px-4 text-right" @click.stop>
               <div class="flex items-center justify-end gap-1.5">
+                <!-- Edit Lead Button -->
+                <button
+                  @click="store.openEditLead(lead.id)"
+                  title="Edit Lead Profile"
+                  class="p-2 rounded-lg bg-amber-50 hover:bg-amber-600 text-amber-600 hover:text-white dark:bg-amber-950/60 dark:hover:bg-amber-600 dark:text-amber-300 transition-colors shadow-sm"
+                >
+                  <Pencil class="w-3.5 h-3.5" />
+                </button>
+
                 <!-- Cold Call Button -->
                 <button
                   @click="store.openQuickCall(lead.id)"
