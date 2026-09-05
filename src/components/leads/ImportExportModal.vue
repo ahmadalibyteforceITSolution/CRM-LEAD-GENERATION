@@ -85,6 +85,10 @@ function parseCSVLine(line: string): string[] {
 }
 
 function confirmImport() {
+  if (store.currentUser?.role !== 'SuperAdmin') {
+    errorMessage.value = 'Permission denied: Only SuperAdmin is authorized to import leads.';
+    return;
+  }
   if (parsedData.value.length === 0) return;
   const count = store.importLeadsFromCSV(parsedData.value);
   successMessage.value = `Successfully imported ${count} leads into the CRM!`;
@@ -114,29 +118,29 @@ function downloadSampleCSV() {
     'Timeline',
     'Assigned Salesperson',
     'Next Action',
-    'Lead Notes / Requirements'
+    'Notes'
   ];
 
   const sampleRows = [
     [
-      '"Alexander Hayes"',
-      '"Hayes Medical Logistics"',
-      '"+1 555-492-9910"',
-      '"+1 555-492-9910"',
-      '"alex@hayesmed.com"',
+      '"Marcus Sterling"',
+      '"Sterling Logistics"',
+      '"+1 555-492-8819"',
+      '"+1 555-492-8819"',
+      '"marcus@sterlinglogistics.com"',
       '"Dallas, TX"',
-      '"Suite 300, 100 Main St, Dallas, TX"',
-      '"Healthcare"',
-      '"Lead Generation & Outreach"',
+      '"400 Main St, Dallas, TX"',
+      '"Logistics"',
+      '"Fleet Management CRM"',
       '"Google Maps"',
       '"Hot"',
-      '"New Lead"',
+      '"Interested"',
       '"Commercial"',
       '"Downtown Dallas"',
       '"1m-2m"',
       '"1000-2000 sq.ft"',
       '"Immediately"',
-      '"Laiba Shahid"',
+      '"Laiba Khan"',
       '"First cold call to CEO"',
       '"Looking for turnkey lead generation system and WhatsApp follow-up automation."'
     ],
@@ -158,7 +162,7 @@ function downloadSampleCSV() {
       '"2m-3m"',
       '"2000-3000 sq.ft"',
       '"0-1 month"',
-      '"SuperAdmin"',
+      '"Laiba Khan"',
       '"Send WhatsApp credentials & case study"',
       '"High budget client from LinkedIn campaign. Ready for demo next week."'
     ]

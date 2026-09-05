@@ -104,10 +104,28 @@ function handlePhoneBlur() {
   }
 }
 
+const assignableSalespersons = computed(() => {
+  return store.salespersons.filter(sp => sp.role !== 'SuperAdmin' && sp.name.toLowerCase() !== 'superadmin');
+});
+
 function handleCreateLead() {
+  if (store.currentUser?.role !== 'SuperAdmin') {
+    alert('Permission denied: Only SuperAdmin is authorized to add leads.');
+    store.isCreateLeadModalOpen = false;
+    return;
+  }
+
   if (!name.value.trim()) {
     alert('Please enter a Lead / Contact Name');
     return;
+  }
+
+  // Never assign to SuperAdmin! Leads belong to sales representatives like Laiba Khan
+  let finalRep = (assignedSalesperson.value || '').trim();
+  if (!finalRep || finalRep.toLowerCase() === 'superadmin') {
+    finalRep = assignableSalespersons.value[0]?.name || 'Laiba Khan';
+  } else if (finalRep.toLowerCase().includes('laiba')) {
+    finalRep = 'Laiba Khan';
   }
 
   const selectedBudget = budgetRange.value;
@@ -126,7 +144,7 @@ function handleCreateLead() {
     stage: stage.value,
     priority: priority.value,
     notQualifiedReason: notQualifiedReason.value.trim(),
-    assignedSalesperson: assignedSalesperson.value,
+    assignedSalesperson: finalRep,
     territory: territory.value,
     notes: notes.value.trim(),
     nextAction: nextAction.value.trim() || 'Initial contact outreach',
@@ -159,7 +177,18 @@ function handleCreateLead() {
 
 watch(() => store.isCreateLeadModalOpen, (isOpen) => {
   if (isOpen) {
-    assignedSalesperson.value = store.currentSalesperson || store.currentUser?.name || 'SuperAdmin';
+    if (store.currentUser?.role !== 'SuperAdmin') {
+      alert('Permission denied: Only SuperAdmin is authorized to add leads.');
+      store.isCreateLeadModalOpen = false;
+      return;
+    }
+    // Set default assignee to Laiba Khan or active sales rep - NEVER SuperAdmin!
+    const defaultRep = assignableSalespersons.value[0]?.name || 'Laiba Khan';
+    if (store.currentSalesperson && store.currentSalesperson.toLowerCase() !== 'superadmin') {
+      assignedSalesperson.value = store.currentSalesperson;
+    } else {
+      assignedSalesperson.value = defaultRep;
+    }
   }
 });
 </script>
@@ -307,7 +336,7 @@ watch(() => store.isCreateLeadModalOpen, (isOpen) => {
                 v-model="assignedSalesperson"
                 class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold cursor-pointer"
               >
-                <option v-for="sp in store.salespersons" :key="sp.id" :value="sp.name">{{ sp.name }}</option>
+                <option v-for="sp in assignableSalespersons" :key="sp.id" :value="sp.name">{{ sp.name }}</option>
               </select>
             </div>
           </div>

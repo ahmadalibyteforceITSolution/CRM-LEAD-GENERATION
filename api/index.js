@@ -48,7 +48,7 @@ let memoryActivities = [];
 let memoryUsers = [
   {
     id: 'user-admin',
-    name: 'SuperAdmin',
+      name: 'SuperAdmin',
     email: 'admin@nexleads.io',
     password: 'password123',
     role: 'SuperAdmin',
@@ -57,7 +57,7 @@ let memoryUsers = [
   },
   {
     id: 'user-sales-op',
-    name: 'Laiba Shahid',
+    name: 'Laiba Khan',
     email: 'salesspacesandplaces@gmail.com',
     password: 'Laiba1234',
     role: 'Sales Operations Manager',
@@ -68,16 +68,8 @@ let memoryUsers = [
 
 let memorySalespersons = [
   {
-    id: 'sp-admin',
-    name: 'SuperAdmin',
-    email: 'admin@nexleads.io',
-    role: 'SuperAdmin',
-    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80',
-    activeLeadsCount: 0
-  },
-  {
     id: 'sp-sales-op',
-    name: 'Laiba Shahid',
+    name: 'Laiba Khan',
     email: 'salesspacesandplaces@gmail.com',
     role: 'Sales Operations Manager',
     avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
@@ -89,7 +81,7 @@ let cachedConnection = null;
 
 function cleanAndNormalizeSalespersons(list) {
   const map = new Map();
-  const blockedDemoNames = ['ali raza', 'sarah jenkins', 'michael chang', 'priya sharma', 'sara khan', 'hamza malik', 'zainab abbas'];
+  const blockedDemoNames = ['ali raza', 'sarah jenkins', 'michael chang', 'priya sharma', 'sara khan', 'hamza malik', 'zainab abbas', 'superadmin'];
   for (const item of list) {
     if (!item || !item.name) continue;
     let name = item.name.trim();
@@ -97,22 +89,15 @@ function cleanAndNormalizeSalespersons(list) {
     let role = item.role || 'Sales Representative';
     let avatar = item.avatar || '';
 
-    // Ignore old demo names
-    if (blockedDemoNames.includes(name.toLowerCase())) continue;
+    // Ignore old demo names and SuperAdmin (SuperAdmin is admin, not an assignable salesperson)
+    if (blockedDemoNames.includes(name.toLowerCase()) || role === 'SuperAdmin') continue;
 
-    // Normalize any variation of Laiba (Sales Ops) to ONLY Laiba Shahid
-    if (name.toLowerCase().includes('laiba') || email === 'salesspacesandplaces@gmail.com') {
-      name = 'Laiba Shahid';
+    // Normalize any variation of Laiba (Sales Ops / Shahid) to ONLY Laiba Khan
+    if (name.toLowerCase().includes('laiba') || email === 'salesspacesandplaces@gmail.com' || email === 'salesspaceandplaces@gmail.com') {
+      name = 'Laiba Khan';
       email = 'salesspacesandplaces@gmail.com';
       role = 'Sales Operations Manager';
       avatar = 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80';
-    }
-
-    if (name.toLowerCase() === 'superadmin' || email === 'admin@nexleads.io') {
-      name = 'SuperAdmin';
-      email = 'admin@nexleads.io';
-      role = 'SuperAdmin';
-      avatar = 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80';
     }
 
     const key = name.toLowerCase();
@@ -139,30 +124,37 @@ async function seedDatabaseIfEmpty() {
       await UserModel.deleteMany({ name: { $in: demoNames } });
       await SalespersonModel.deleteMany({ name: /Sales Ops/i });
       await UserModel.deleteMany({ name: /Sales Ops/i });
+      // SuperAdmin is admin, not a salesperson
+      await SalespersonModel.deleteMany({ $or: [{ name: 'SuperAdmin' }, { role: 'SuperAdmin' }] });
 
-      // Reassign any existing lead with an old demo assigned salesperson to 'Laiba Shahid'
+      // Reassign any existing lead with an old demo assigned salesperson, SuperAdmin, or Laiba Shahid to 'Laiba Khan'
       await LeadModel.updateMany(
-        { assignedSalesperson: { $in: ['Ali Raza', 'Sarah Jenkins', 'Michael Chang', 'Priya Sharma', 'Laiba (Sales Ops)'] } },
-        { assignedSalesperson: 'Laiba Shahid', currentOwner: 'Laiba Shahid', nextFollowUpOwner: 'Laiba Shahid' }
+        { assignedSalesperson: { $in: ['Ali Raza', 'Sarah Jenkins', 'Michael Chang', 'Priya Sharma', 'Laiba (Sales Ops)', 'SuperAdmin', 'superadmin', 'Laiba Shahid'] } },
+        { assignedSalesperson: 'Laiba Khan', currentOwner: 'Laiba Khan', nextFollowUpOwner: 'Laiba Khan' }
       );
 
-      // Seed default users if missing
+      // Seed default users if missing and normalize Laiba Khan
       for (const u of memoryUsers) {
         const exists = await UserModel.findOne({ email: u.email });
         if (!exists) {
           await UserModel.create(u);
-        } else if (u.name === 'Laiba Shahid' && exists.name !== 'Laiba Shahid') {
-          await UserModel.updateOne({ email: u.email }, { name: 'Laiba Shahid' });
+        } else if (u.name === 'Laiba Khan' && exists.name !== 'Laiba Khan') {
+          await UserModel.updateOne({ email: u.email }, { name: 'Laiba Khan' });
         }
       }
+      // Also update any user with old email variant
+      await UserModel.updateMany(
+        { email: 'salesspaceandplaces@gmail.com' },
+        { name: 'Laiba Khan', email: 'salesspacesandplaces@gmail.com' }
+      );
 
       // Seed salespersons if missing
       for (const sp of memorySalespersons) {
         const exists = await SalespersonModel.findOne({ email: sp.email });
         if (!exists) {
           await SalespersonModel.create(sp);
-        } else if (sp.name === 'Laiba Shahid' && exists.name !== 'Laiba Shahid') {
-          await SalespersonModel.updateOne({ email: sp.email }, { name: 'Laiba Shahid' });
+        } else if (sp.name === 'Laiba Khan' && exists.name !== 'Laiba Khan') {
+          await SalespersonModel.updateOne({ email: sp.email }, { name: 'Laiba Khan' });
         }
       }
     }
@@ -253,9 +245,14 @@ app.get('/api/leads', async (req, res) => {
   }
 });
 
-// POST create lead (strictly awaits DB and validates name)
+// POST create lead (strictly awaits DB, validates name & enforces SuperAdmin permission)
 app.post('/api/leads', async (req, res) => {
   try {
+    const requesterRole = (req.headers['x-user-role'] || req.body.creatorRole || req.body.userRole || '').toString().trim();
+    if (requesterRole && requesterRole !== 'SuperAdmin') {
+      return res.status(403).json({ error: 'Permission denied: Only SuperAdmin is authorized to add leads.' });
+    }
+
     const leadData = toPlainObject(req.body);
 
     // Strict validation: Require name!
@@ -268,11 +265,18 @@ app.post('/api/leads', async (req, res) => {
       leadData.id = 'lead-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7);
     }
 
-    const rep = (leadData.assignedSalesperson || 'SuperAdmin').trim();
+    // Never assign lead to SuperAdmin! Leads belong to sales representatives like Laiba Khan
+    let rep = (leadData.assignedSalesperson || '').trim();
+    if (!rep || rep.toLowerCase() === 'superadmin' || rep.toLowerCase() === 'unassigned') {
+      rep = 'Laiba Khan';
+    } else if (rep.toLowerCase().includes('laiba')) {
+      rep = 'Laiba Khan';
+    }
+
     leadData.assignedSalesperson = rep;
-    if (!leadData.currentOwner) leadData.currentOwner = rep;
-    if (!leadData.nextFollowUpOwner) leadData.nextFollowUpOwner = rep;
-    if (!leadData.assignedBy) leadData.assignedBy = rep;
+    leadData.currentOwner = rep;
+    leadData.nextFollowUpOwner = rep;
+    leadData.assignedBy = 'SuperAdmin';
     if (!leadData.createdAt) leadData.createdAt = new Date().toISOString();
     leadData.updatedAt = new Date().toISOString();
 
@@ -315,9 +319,15 @@ app.put('/api/leads/:id', async (req, res) => {
     updates.updatedAt = new Date().toISOString();
 
     if (updates.assignedSalesperson) {
-      updates.assignedSalesperson = updates.assignedSalesperson.trim();
-      if (!updates.currentOwner) updates.currentOwner = updates.assignedSalesperson;
-      if (!updates.nextFollowUpOwner) updates.nextFollowUpOwner = updates.assignedSalesperson;
+      let rep = updates.assignedSalesperson.trim();
+      if (rep.toLowerCase() === 'superadmin' || !rep) {
+        rep = 'Laiba Khan';
+      } else if (rep.toLowerCase().includes('laiba')) {
+        rep = 'Laiba Khan';
+      }
+      updates.assignedSalesperson = rep;
+      if (!updates.currentOwner || updates.currentOwner.toLowerCase() === 'superadmin') updates.currentOwner = rep;
+      if (!updates.nextFollowUpOwner || updates.nextFollowUpOwner.toLowerCase() === 'superadmin') updates.nextFollowUpOwner = rep;
     }
 
     await connectDB();
@@ -626,15 +636,17 @@ app.get('/api/salespersons', async (req, res) => {
         });
       }
 
-      // Ensure every registered user also appears as a salesperson option
+      // Ensure registered sales users appear as a salesperson option (exclude SuperAdmin)
       for (const u of dbUsers) {
+        if (u.role === 'SuperAdmin' || u.name.toLowerCase() === 'superadmin') continue;
         if (!map.has(u.email.toLowerCase())) {
+          const isLaiba = u.name.toLowerCase().includes('laiba') || u.email.toLowerCase().includes('salesspace');
           map.set(u.email.toLowerCase(), {
             id: u.id,
-            name: u.name,
-            email: u.email,
-            role: u.role || 'Sales Representative',
-            avatar: u.avatar || '',
+            name: isLaiba ? 'Laiba Khan' : u.name,
+            email: isLaiba ? 'salesspacesandplaces@gmail.com' : u.email,
+            role: isLaiba ? 'Sales Operations Manager' : (u.role || 'Sales Representative'),
+            avatar: u.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(u.name)}`,
             activeLeadsCount: 0
           });
         }
@@ -642,11 +654,12 @@ app.get('/api/salespersons', async (req, res) => {
 
       // Ensure all reps assigned to any existing lead in DB appear in salespersons
       for (const lead of dbLeads) {
-        const repName = (lead.assignedSalesperson || '').trim();
-        if (repName && repName.toLowerCase() !== 'unassigned') {
+        let repName = (lead.assignedSalesperson || '').trim();
+        if (repName && repName.toLowerCase() !== 'unassigned' && repName.toLowerCase() !== 'superadmin') {
+          const isLaiba = repName.toLowerCase().includes('laiba');
+          if (isLaiba) repName = 'Laiba Khan';
           const alreadyExists = Array.from(map.values()).some(s => s.name.toLowerCase() === repName.toLowerCase());
           if (!alreadyExists) {
-            const isLaiba = repName.toLowerCase() === 'laiba shahid';
             const email = isLaiba ? 'salesspacesandplaces@gmail.com' : `${repName.toLowerCase().replace(/\s+/g, '.')}@nexleads.io`;
             map.set(email, {
               id: 'sp-' + encodeURIComponent(repName.toLowerCase().replace(/\s+/g, '-')),
@@ -662,11 +675,12 @@ app.get('/api/salespersons', async (req, res) => {
     } else {
       // Memory fallback: also check memoryLeads
       for (const lead of memoryLeads) {
-        const repName = (lead.assignedSalesperson || '').trim();
-        if (repName && repName.toLowerCase() !== 'unassigned') {
+        let repName = (lead.assignedSalesperson || '').trim();
+        if (repName && repName.toLowerCase() !== 'unassigned' && repName.toLowerCase() !== 'superadmin') {
+          const isLaiba = repName.toLowerCase().includes('laiba');
+          if (isLaiba) repName = 'Laiba Khan';
           const alreadyExists = Array.from(map.values()).some(s => s.name.toLowerCase() === repName.toLowerCase());
           if (!alreadyExists) {
-            const isLaiba = repName.toLowerCase() === 'laiba shahid';
             const email = isLaiba ? 'salesspacesandplaces@gmail.com' : `${repName.toLowerCase().replace(/\s+/g, '.')}@nexleads.io`;
             map.set(email, {
               id: 'sp-' + encodeURIComponent(repName.toLowerCase().replace(/\s+/g, '-')),

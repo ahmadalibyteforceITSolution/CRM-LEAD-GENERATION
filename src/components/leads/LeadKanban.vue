@@ -134,7 +134,7 @@ function moveToNextStage(lead: Lead, event: MouseEvent) {
           </div>
 
           <button
-            v-if="store.currentUser?.role === 'SuperAdmin' || store.currentUser?.role === 'Admin'"
+            v-if="store.currentUser?.role === 'SuperAdmin'"
             @click="store.isCreateLeadModalOpen = true"
             title="Add lead to this stage"
             class="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"

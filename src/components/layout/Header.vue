@@ -25,17 +25,25 @@ const urgentRemindersCount = computed(() => {
 });
 
 function handleOpenNewLead() {
+  if (store.currentUser?.role !== 'SuperAdmin') {
+    alert('Permission denied: Only SuperAdmin can add leads.');
+    return;
+  }
   store.isCreateLeadModalOpen = true;
+}
+
+function handleSearchInput() {
+  if (store.searchQuery.trim().length > 0 && store.currentView !== 'table' && store.currentView !== 'kanban') {
+    store.currentView = 'table';
+  }
 }
 
 function handleOpenImportExport() {
   store.isImportExportModalOpen = true;
 }
 
-function handleResetDemo() {
-  if (confirm('Reset CRM database back to original realistic sample data?')) {
-    store.resetToDemoData();
-  }
+function handleRefreshDB() {
+  store.fetchAllFromDB();
 }
 </script>
 
@@ -71,9 +79,9 @@ function handleResetDemo() {
         </div>
       </div>
 
-      <!-- Add Lead CTA button on Mobile (top row) -->
+      <!-- Add Lead CTA button on Mobile (top row) - strictly SuperAdmin only -->
       <button
-        v-if="store.currentUser?.role === 'SuperAdmin' || store.currentUser?.role === 'Admin'"
+        v-if="store.currentUser?.role === 'SuperAdmin'"
         @click="handleOpenNewLead"
         class="sm:hidden inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/30 active:scale-95 transition-all flex-shrink-0"
       >
@@ -82,13 +90,15 @@ function handleResetDemo() {
       </button>
     </div>
 
-    <!-- Desktop Search Input (Middle) -->
-    <div class="relative flex-1 hidden md:block max-w-md">
+    <!-- Search Input (Middle) -->
+    <div class="relative flex-1 max-w-md w-full">
       <Search class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
       <input
         v-model="store.searchQuery"
+        @input="handleSearchInput"
+        @keydown.enter.prevent
         type="text"
-        placeholder="Search leads, company, phone, notes..."
+        placeholder="Search leads, company, rep, phone, notes..."
         class="w-full bg-slate-100/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl pl-9 pr-4 py-1.5 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all"
       />
       <button
@@ -211,9 +221,9 @@ function handleResetDemo() {
           <span>CSV</span>
         </button>
 
-        <!-- Desktop Add Lead Button -->
+        <!-- Desktop Add Lead Button - strictly SuperAdmin only -->
         <button
-          v-if="store.currentUser?.role === 'SuperAdmin' || store.currentUser?.role === 'Admin'"
+          v-if="store.currentUser?.role === 'SuperAdmin'"
           @click="handleOpenNewLead"
           class="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/30 active:scale-95 transition-all"
         >
@@ -253,10 +263,10 @@ function handleResetDemo() {
 
             <div class="py-2 space-y-1">
               <button
-                @click="store.resetToDemoData(); isUserMenuOpen = false"
+                @click="store.fetchAllFromDB(); isUserMenuOpen = false"
                 class="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors font-medium flex items-center justify-between"
               >
-                <span>Reset Demo Database</span>
+                <span>Refresh Database</span>
                 <RotateCcw class="w-3.5 h-3.5 text-slate-400" />
               </button>
             </div>

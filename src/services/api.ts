@@ -59,11 +59,14 @@ export const apiService = {
     }
   },
 
-  async saveLead(lead: Lead): Promise<boolean> {
+  async saveLead(lead: Lead, userRole = 'SuperAdmin'): Promise<boolean> {
     try {
       const res = await fetch(`${API_BASE}/leads`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-user-role': userRole
+        },
         body: JSON.stringify(lead)
       });
       return res.ok;

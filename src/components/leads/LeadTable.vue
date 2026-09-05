@@ -211,6 +211,17 @@ async function executeDeleteLead() {
     showToast(`Failed to delete lead: ${err.message || 'Server error'}`, 'error');
   }
 }
+
+function resetAllFilters() {
+  store.selectedStageFilter = 'all';
+  store.selectedPriorityFilter = 'all';
+  store.selectedSourceFilter = 'all';
+  store.selectedSalespersonFilter = 'all';
+  store.activeQueueFilter = 'all';
+  store.startDateFilter = '';
+  store.endDateFilter = '';
+  store.searchQuery = '';
+}
 </script>
 
 <template>
@@ -429,13 +440,38 @@ async function executeDeleteLead() {
           <div class="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto text-slate-500">
             <Filter class="w-6 h-6" />
           </div>
-          <h3 class="font-bold text-slate-700 dark:text-slate-200 text-sm">No leads match your criteria</h3>
-          <p class="text-xs text-slate-500">Try adjusting your filters or search terms.</p>
+          <h3 class="font-bold text-slate-700 dark:text-slate-200 text-sm">
+            {{ store.searchQuery ? `No leads found for "${store.searchQuery}"` : (store.leads.length === 0 ? 'No leads in CRM database' : 'No leads match your criteria') }}
+          </h3>
+          <p class="text-xs text-slate-500">
+            {{ store.searchQuery ? 'Check your spelling or try searching by name, company, rep, phone, or notes.' : (store.leads.length === 0 ? 'Get started by creating your first lead.' : 'Try adjusting your filters or date range.') }}
+          </p>
+
+          <!-- If search is active: Show Clear Search button (never Create Lead) -->
           <button
-            @click="store.isCreateLeadModalOpen = true"
-            class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white"
+            v-if="store.searchQuery"
+            @click="store.searchQuery = ''"
+            class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors"
           >
-            Create New Lead
+            Clear Search
+          </button>
+
+          <!-- If database has 0 leads AND user is SuperAdmin: Show Create First Lead -->
+          <button
+            v-else-if="store.leads.length === 0 && store.currentUser?.role === 'SuperAdmin'"
+            @click="store.isCreateLeadModalOpen = true"
+            class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/30"
+          >
+            Create First Lead
+          </button>
+
+          <!-- If filters have no matches: Show Reset Filters -->
+          <button
+            v-else-if="store.leads.length > 0"
+            @click="resetAllFilters"
+            class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 transition-colors"
+          >
+            Reset Filters
           </button>
         </div>
       </div>
@@ -638,13 +674,38 @@ async function executeDeleteLead() {
                 <div class="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto text-slate-500">
                   <Filter class="w-6 h-6" />
                 </div>
-                <h3 class="font-bold text-slate-700 dark:text-slate-200 text-sm">No leads match your criteria</h3>
-                <p class="text-xs text-slate-500">Try adjusting your filters or search terms, or add a brand new lead.</p>
+                <h3 class="font-bold text-slate-700 dark:text-slate-200 text-sm">
+                  {{ store.searchQuery ? `No leads found for "${store.searchQuery}"` : (store.leads.length === 0 ? 'No leads in CRM database' : 'No leads match your criteria') }}
+                </h3>
+                <p class="text-xs text-slate-500">
+                  {{ store.searchQuery ? 'Check your spelling or try searching by name, company, rep, phone, or notes.' : (store.leads.length === 0 ? 'Get started by creating your first lead.' : 'Try adjusting your filters or date range.') }}
+                </p>
+
+                <!-- If search is active: Show Clear Search button (never Create Lead) -->
                 <button
-                  @click="store.isCreateLeadModalOpen = true"
-                  class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white"
+                  v-if="store.searchQuery"
+                  @click="store.searchQuery = ''"
+                  class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors"
                 >
-                  Create New Lead
+                  Clear Search
+                </button>
+
+                <!-- If database has 0 leads AND user is SuperAdmin: Show Create First Lead -->
+                <button
+                  v-else-if="store.leads.length === 0 && store.currentUser?.role === 'SuperAdmin'"
+                  @click="store.isCreateLeadModalOpen = true"
+                  class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/30"
+                >
+                  Create First Lead
+                </button>
+
+                <!-- If filters have no matches: Show Reset Filters -->
+                <button
+                  v-else-if="store.leads.length > 0"
+                  @click="resetAllFilters"
+                  class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 transition-colors"
+                >
+                  Reset Filters
                 </button>
               </div>
             </td>

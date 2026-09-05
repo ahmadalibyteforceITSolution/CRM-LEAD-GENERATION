@@ -34,6 +34,9 @@ const store = useCRMStore();
 const lead = computed(() => store.activeLead);
 const activities = computed(() => store.activeLeadActivities);
 const compliance = computed(() => lead.value ? store.checkLeadCompliance(lead.value) : null);
+const assignableSalespersons = computed(() => {
+  return store.salespersons.filter(sp => sp.role !== 'SuperAdmin' && sp.name.toLowerCase() !== 'superadmin');
+});
 
 // Quick Add Note / Custom Activity state
 const newActivityType = ref<'note' | 'call' | 'whatsapp' | 'meeting' | 'not_qualified'>('note');
@@ -565,12 +568,12 @@ function closeDrawer() {
               <div class="flex items-center justify-between">
                 <span class="text-slate-500">Assigned Salesperson:</span>
                 <select
-                  v-if="store.currentUser?.role === 'SuperAdmin' || store.currentUser?.role === 'Admin'"
+                  v-if="store.currentUser?.role === 'SuperAdmin'"
                   :value="lead.assignedSalesperson"
                   @change="handleFieldChange('assignedSalesperson', ($event.target as HTMLSelectElement).value)"
                   class="bg-slate-100 dark:bg-slate-800 font-semibold rounded-lg px-2 py-1 border border-slate-200 dark:border-slate-700"
                 >
-                  <option v-for="sp in store.salespersons" :key="sp.id" :value="sp.name">{{ sp.name }}</option>
+                  <option v-for="sp in assignableSalespersons" :key="sp.id" :value="sp.name">{{ sp.name }}</option>
                 </select>
                 <span v-else class="font-semibold text-slate-700 dark:text-slate-300">
                   {{ lead.assignedSalesperson }}
