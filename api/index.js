@@ -3,15 +3,15 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import dns from 'dns';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import fs from 'fs';
 import { LeadModel } from './models/Lead.js';
 import { ActivityModel } from './models/Activity.js';
 import { SalespersonModel } from './models/Salesperson.js';
 import { UserModel } from './models/User.js';
 
-// Configure reliable DNS servers to prevent querySrv ECONNREFUSED with MongoDB Atlas
-try {
-  dns.setServers(['8.8.8.8', '1.1.1.1']);
-} catch (e) {}
+// DNS fallback is handled conditionally in connectDB() to prevent breaking cloud environments like Vercel and cPanel
 
 dotenv.config();
 
@@ -40,7 +40,9 @@ function toPlainObject(doc) {
   return plain;
 }
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://ahmedalihafeez25_db_user:%40Sublime12345@cluster0.oe0inne.mongodb.net/crm?retryWrites=true&w=majority';
+const DIRECT_MONGODB_URI = 'mongodb://ahmedalihafeez25_db_user:%40Sublime12345@ac-b095rvn-shard-00-00.oe0inne.mongodb.net:27017,ac-b095rvn-shard-00-01.oe0inne.mongodb.net:27017,ac-b095rvn-shard-00-02.oe0inne.mongodb.net:27017/crm?ssl=true&replicaSet=atlas-arfzx2-shard-0&authSource=admin&retryWrites=true&w=majority';
+const SRV_MONGODB_URI = 'mongodb+srv://ahmedalihafeez25_db_user:%40Sublime12345@cluster0.oe0inne.mongodb.net/crm?retryWrites=true&w=majority';
+const MONGODB_URI = process.env.MONGODB_URI || DIRECT_MONGODB_URI;
 
 // In-memory fallback cache to ensure 0 HTTP 500 errors
 let memoryLeads = [];
@@ -167,20 +169,49 @@ async function connectDB() {
   if (mongoose.connection.readyState === 1) {
     return mongoose.connection;
   }
-  if (!cachedConnection) {
-    cachedConnection = mongoose.connect(MONGODB_URI, {
-      serverSelectionTimeoutMS: 8000,
-    }).then(async (m) => {
-      console.log('✅ Connected to MongoDB Atlas successfully (crm database)');
+
+  if (mongoose.connection.readyState === 2 && cachedConnection) {
+    try {
+      await cachedConnection;
+      if (mongoose.connection.readyState === 1) return mongoose.connection;
+    } catch (e) {}
+  }
+
+  const primaryUri = process.env.MONGODB_URI || DIRECT_MONGODB_URI;
+
+  try {
+    cachedConnection = mongoose.connect(primaryUri, {
+      serverSelectionTimeoutMS: 7000,
+      connectTimeoutMS: 10000,
+      socketTimeoutMS: 45000,
+      family: 4
+    });
+    const m = await cachedConnection;
+    console.log('✅ Connected to MongoDB Atlas successfully (crm database)');
+    await seedDatabaseIfEmpty();
+    return m.connection;
+  } catch (err) {
+    console.warn('⚠️ Primary MongoDB connection failed, attempting fallback...', err.message);
+    cachedConnection = null;
+
+    try {
+      if (process.platform === 'win32') {
+        try { dns.setServers(['8.8.8.8', '1.1.1.1']); } catch (e) {}
+      }
+      cachedConnection = mongoose.connect(SRV_MONGODB_URI, {
+        serverSelectionTimeoutMS: 7000,
+        connectTimeoutMS: 10000
+      });
+      const m = await cachedConnection;
+      console.log('✅ Fallback connected to MongoDB Atlas successfully');
       await seedDatabaseIfEmpty();
       return m.connection;
-    }).catch(err => {
+    } catch (fallbackErr) {
       cachedConnection = null;
-      console.error('⚠️ MongoDB Atlas Connection Notice:', err.message);
+      console.error('❌ MongoDB Atlas connection error:', fallbackErr.message);
       return null;
-    });
+    }
   }
-  return cachedConnection;
 }
 
 // Connect immediately on startup
@@ -791,11 +822,29 @@ app.post('/api/sync', async (req, res) => {
   }
 });
 
+// Static serving for production deployments (cPanel / fullstack Node)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const distPath = path.join(__dirname, '..', 'dist');
+
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath));
+  app.use((req, res, next) => {
+    if (req.method === 'GET' && !req.path.startsWith('/api')) {
+      return res.sendFile(path.join(distPath, 'index.html'));
+    }
+    next();
+  });
+}
+
 const PORT = process.env.PORT || 5000;
-if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+// In Vercel, the app is exported for serverless functions.
+// In cPanel, Docker, VPS, and local dev, app.listen must be called.
+if (!process.env.VERCEL) {
   app.listen(PORT, () => {
     console.log(`Backend CRM API Server connected and listening on port ${PORT}`);
   });
 }
 
 export default app;
+

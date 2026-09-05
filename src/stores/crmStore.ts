@@ -648,7 +648,12 @@ export const useCRMStore = defineStore('crm', () => {
     leads.value.unshift(newLead);
 
     // Save directly to MongoDB Database
-    await apiService.saveLead(newLead, currentUser.value?.role || 'SuperAdmin');
+    const saveRes = await apiService.saveLead(newLead, currentUser.value?.role || 'SuperAdmin');
+    if (!saveRes.success) {
+      // Rollback optimistic update if server failed to persist
+      leads.value = leads.value.filter(l => l.id !== newLead.id);
+      throw new Error(saveRes.error || 'Database connection unavailable. Unable to persist lead.');
+    }
 
     // Log Activity directly to MongoDB Database
     const initialActivityNotes = newLead.notes && newLead.notes.trim()
@@ -699,7 +704,10 @@ export const useCRMStore = defineStore('crm', () => {
     }
 
     // Save directly to MongoDB Database
-    await apiService.updateLead(actualId, finalUpdates);
+    const updateRes = await apiService.updateLead(actualId, finalUpdates);
+    if (!updateRes.success) {
+      console.warn('Update persistence notice:', updateRes.error);
+    }
   }
 
   async function updateLeadStage(id: string, newStage: PipelineStage) {
@@ -745,14 +753,19 @@ export const useCRMStore = defineStore('crm', () => {
     const targetId = targetLead?.id || id;
     const mongoId = (targetLead as any)?._id;
 
+    // Delete directly from MongoDB Database
+    const res = await apiService.deleteLead(targetId);
+    if (!res.success) {
+      throw new Error(res.error || 'Failed to delete lead from MongoDB database.');
+    }
+
     leads.value = leads.value.filter(l => l.id !== targetId && (l as any)._id !== targetId && (!mongoId || (l as any)._id !== mongoId));
     activities.value = activities.value.filter(a => a.leadId !== targetId && (!mongoId || a.leadId !== mongoId));
     if (activeLeadId.value === targetId || (mongoId && activeLeadId.value === mongoId)) {
       activeLeadId.value = null;
       isDetailDrawerOpen.value = false;
     }
-    // Delete directly from MongoDB Database
-    return await apiService.deleteLead(targetId);
+    return true;
   }
 
   // --- Activities & Logging directly to MongoDB ---

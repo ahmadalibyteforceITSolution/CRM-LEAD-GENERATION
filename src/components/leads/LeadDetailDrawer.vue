@@ -168,9 +168,10 @@ async function handleDeleteLeadFromDrawer() {
     isDeleting.value = false;
     isDeleteConfirmOpen.value = false;
     closeDrawer();
-  } catch {
+  } catch (err: any) {
     isDeleting.value = false;
     isDeleteConfirmOpen.value = false;
+    alert(err?.message || 'Failed to delete lead from database');
   }
 }
 

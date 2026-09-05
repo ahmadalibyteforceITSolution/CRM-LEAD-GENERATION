@@ -59,7 +59,7 @@ export const apiService = {
     }
   },
 
-  async saveLead(lead: Lead, userRole = 'SuperAdmin'): Promise<boolean> {
+  async saveLead(lead: Lead, userRole = 'SuperAdmin'): Promise<{ success: boolean; error?: string }> {
     try {
       const res = await fetch(`${API_BASE}/leads`, {
         method: 'POST',
@@ -69,33 +69,54 @@ export const apiService = {
         },
         body: JSON.stringify(lead)
       });
-      return res.ok;
-    } catch {
-      return false;
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        const err = data.error || `Server responded with HTTP ${res.status}`;
+        console.error('Failed to save lead to database:', err);
+        return { success: false, error: err };
+      }
+      return { success: true };
+    } catch (err: any) {
+      console.error('Network error saving lead:', err);
+      return { success: false, error: err?.message || 'Network error connecting to CRM API' };
     }
   },
 
-  async updateLead(id: string, updates: Partial<Lead>): Promise<boolean> {
+  async updateLead(id: string, updates: Partial<Lead>): Promise<{ success: boolean; error?: string }> {
     try {
       const res = await fetch(`${API_BASE}/leads/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates)
       });
-      return res.ok;
-    } catch {
-      return false;
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        const err = data.error || `Server responded with HTTP ${res.status}`;
+        console.error('Failed to update lead:', err);
+        return { success: false, error: err };
+      }
+      return { success: true };
+    } catch (err: any) {
+      console.error('Network error updating lead:', err);
+      return { success: false, error: err?.message || 'Network error connecting to CRM API' };
     }
   },
 
-  async deleteLead(id: string): Promise<boolean> {
+  async deleteLead(id: string): Promise<{ success: boolean; error?: string }> {
     try {
       const res = await fetch(`${API_BASE}/leads/${id}`, {
         method: 'DELETE'
       });
-      return res.ok;
-    } catch {
-      return false;
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        const err = data.error || `Server responded with HTTP ${res.status}`;
+        console.error('Failed to delete lead from database:', err);
+        return { success: false, error: err };
+      }
+      return { success: true };
+    } catch (err: any) {
+      console.error('Network error deleting lead:', err);
+      return { success: false, error: err?.message || 'Network error connecting to CRM API' };
     }
   },
 

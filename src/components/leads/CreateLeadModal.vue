@@ -91,6 +91,7 @@ const projectLocation = ref('');
 const showValidationPopup = ref(false);
 const missingFieldNames = ref<string[]>([]);
 const touched = ref(false);
+const isSubmitting = ref(false);
 
 function getNumericDealValue(budget: string): number {
   if (budget === '0.5-1m') return 750000;
@@ -150,7 +151,7 @@ function validateFields(): boolean {
   return true;
 }
 
-function handleCreateLead() {
+async function handleCreateLead() {
   if (store.currentUser?.role !== 'SuperAdmin') {
     alert('Permission denied: Only SuperAdmin is authorized to add leads.');
     store.isCreateLeadModalOpen = false;
@@ -170,55 +171,63 @@ function handleCreateLead() {
   }
 
   const selectedBudget = budgetRange.value;
-  store.addLead({
-    name: name.value.trim(),
-    companyName: companyName.value.trim(),
-    phoneNumber: phoneNumber.value.trim(),
-    whatsAppNumber: whatsAppNumber.value.trim(),
-    email: email.value.trim(),
-    industry: industry.value.trim(),
-    city: projectLocation.value.trim() || city.value.trim(),
-    fullAddress: fullAddress.value.trim(),
-    serviceRequired: serviceRequired.value.trim(),
-    leadSource: leadSource.value,
-    dealValue: getNumericDealValue(selectedBudget),
-    stage: stage.value,
-    priority: priority.value,
-    notQualifiedReason: notQualifiedReason.value.trim(),
-    assignedSalesperson: finalRep,
-    territory: territory.value,
-    notes: notes.value.trim(),
-    nextAction: nextAction.value.trim(),
-    nextFollowUpDate: nextFollowUpDate.value,
-    nextFollowUpTime: nextFollowUpTime.value,
-    preferredChannel: preferredChannel.value,
-    projectType: projectType.value,
-    areaSize: areaSize.value,
-    budgetRange: selectedBudget,
-    timeline: timeline.value,
-    projectLocation: projectLocation.value.trim()
-  });
+  isSubmitting.value = true;
+  try {
+    await store.addLead({
+      name: name.value.trim(),
+      companyName: companyName.value.trim(),
+      phoneNumber: phoneNumber.value.trim(),
+      whatsAppNumber: whatsAppNumber.value.trim(),
+      email: email.value.trim(),
+      industry: industry.value.trim(),
+      city: projectLocation.value.trim() || city.value.trim(),
+      fullAddress: fullAddress.value.trim(),
+      serviceRequired: serviceRequired.value.trim(),
+      leadSource: leadSource.value,
+      dealValue: getNumericDealValue(selectedBudget),
+      stage: stage.value,
+      priority: priority.value,
+      notQualifiedReason: notQualifiedReason.value.trim(),
+      assignedSalesperson: finalRep,
+      territory: territory.value,
+      notes: notes.value.trim(),
+      nextAction: nextAction.value.trim(),
+      nextFollowUpDate: nextFollowUpDate.value,
+      nextFollowUpTime: nextFollowUpTime.value,
+      preferredChannel: preferredChannel.value,
+      projectType: projectType.value,
+      areaSize: areaSize.value,
+      budgetRange: selectedBudget,
+      timeline: timeline.value,
+      projectLocation: projectLocation.value.trim()
+    });
 
-  // Reset
-  name.value = '';
-  companyName.value = '';
-  phoneNumber.value = '';
-  whatsAppNumber.value = '';
-  email.value = '';
-  city.value = '';
-  notes.value = '';
-  notQualifiedReason.value = '';
-  projectType.value = 'Residential';
-  budgetValueIndex.value = 1;
-  areaValueIndex.value = 1;
-  timelineValueIndex.value = 0;
-  projectLocation.value = '';
-  nextAction.value = 'First Cold Call & WhatsApp Outreach';
-  nextFollowUpDate.value = getTodayString();
-  nextFollowUpTime.value = '14:00';
-  touched.value = false;
-  showValidationPopup.value = false;
-  store.isCreateLeadModalOpen = false;
+    // Reset
+    name.value = '';
+    companyName.value = '';
+    phoneNumber.value = '';
+    whatsAppNumber.value = '';
+    email.value = '';
+    city.value = '';
+    notes.value = '';
+    notQualifiedReason.value = '';
+    projectType.value = 'Residential';
+    budgetValueIndex.value = 1;
+    areaValueIndex.value = 1;
+    timelineValueIndex.value = 0;
+    projectLocation.value = '';
+    nextAction.value = 'First Cold Call & WhatsApp Outreach';
+    nextFollowUpDate.value = getTodayString();
+    nextFollowUpTime.value = '14:00';
+    touched.value = false;
+    showValidationPopup.value = false;
+    store.isCreateLeadModalOpen = false;
+  } catch (err: any) {
+    missingFieldNames.value = [err.message || 'Database connection unavailable. Unable to persist lead.'];
+    showValidationPopup.value = true;
+  } finally {
+    isSubmitting.value = false;
+  }
 }
 
 watch(() => store.isCreateLeadModalOpen, (isOpen) => {
@@ -687,10 +696,11 @@ watch(() => store.isCreateLeadModalOpen, (isOpen) => {
           </button>
           <button
             type="submit"
-            class="px-6 py-2.5 rounded-xl font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-600/30 flex items-center gap-2 transition-all active:scale-[0.98]"
+            :disabled="isSubmitting"
+            class="px-6 py-2.5 rounded-xl font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-600/30 flex items-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer"
           >
             <UserPlus class="w-4 h-4" />
-            <span>Create & Schedule Lead</span>
+            <span>{{ isSubmitting ? 'Saving to Database...' : 'Create & Schedule Lead' }}</span>
           </button>
         </div>
       </form>
