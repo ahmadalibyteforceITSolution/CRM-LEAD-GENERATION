@@ -1,0 +1,19 @@
+# Enable Rewrite Engine
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Serve static files from dist/ if they exist
+  RewriteCond %{DOCUMENT_ROOT}/dist/$1 -f
+  RewriteRule ^(.*)$ dist/$1 [L]
+
+  # Pass API calls through
+  RewriteCond %{REQUEST_URI} ^/api/
+  RewriteRule ^api/(.*)$ - [L]
+
+  # SPA fallback to dist/index.html
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_URI} !^/api/
+  RewriteRule ^(.*)$ dist/index.html [L]
+</IfModule>
