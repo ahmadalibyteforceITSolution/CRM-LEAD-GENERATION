@@ -44,9 +44,22 @@ const DIRECT_MONGODB_URI = 'mongodb://ahmedalihafeez25_db_user:%40Sublime12345@a
 const SRV_MONGODB_URI = 'mongodb+srv://ahmedalihafeez25_db_user:%40Sublime12345@cluster0.oe0inne.mongodb.net/crm?retryWrites=true&w=majority';
 const MONGODB_URI = process.env.MONGODB_URI || DIRECT_MONGODB_URI;
 
-// In-memory fallback cache to ensure 0 HTTP 500 errors
+// In-memory fallback cache initialized with real extracted data to ensure 0 HTTP 500 errors
 let memoryLeads = [];
+try {
+  const leadsInitPath = path.join(__dirname, '..', 'data', 'leads.json');
+  if (fs.existsSync(leadsInitPath)) {
+    memoryLeads = JSON.parse(fs.readFileSync(leadsInitPath, 'utf8'));
+  }
+} catch (e) {}
+
 let memoryActivities = [];
+try {
+  const actInitPath = path.join(__dirname, '..', 'data', 'activities.json');
+  if (fs.existsSync(actInitPath)) {
+    memoryActivities = JSON.parse(fs.readFileSync(actInitPath, 'utf8'));
+  }
+} catch (e) {}
 let memoryUsers = [
   {
     id: 'user-admin',
@@ -177,6 +190,24 @@ async function seedDatabaseIfEmpty() {
           console.warn('Notice seeding leads from JSON:', seedErr.message);
         }
       }
+
+      // Automatically seed activities if database activities collection is empty
+      const actCount = await ActivityModel.countDocuments();
+      if (actCount === 0) {
+        try {
+          const actFilePath = path.join(__dirname, '..', 'data', 'activities.json');
+          if (fs.existsSync(actFilePath)) {
+            const raw = fs.readFileSync(actFilePath, 'utf8');
+            const initialActivities = JSON.parse(raw);
+            if (Array.isArray(initialActivities) && initialActivities.length > 0) {
+              await ActivityModel.insertMany(initialActivities.map(toPlainObject));
+              console.log(`✅ Auto-seeded ${initialActivities.length} activities into database from data/activities.json`);
+            }
+          }
+        } catch (actErr) {
+          console.warn('Notice seeding activities from JSON:', actErr.message);
+        }
+      }
     }
   } catch (err) {
     console.warn('Seeding notice:', err.message);
@@ -202,6 +233,7 @@ async function connectDB() {
       serverSelectionTimeoutMS: 7000,
       connectTimeoutMS: 10000,
       socketTimeoutMS: 45000,
+      tlsAllowInvalidCertificates: true,
       family: 4
     });
     const m = await cachedConnection;
@@ -218,7 +250,8 @@ async function connectDB() {
       }
       cachedConnection = mongoose.connect(SRV_MONGODB_URI, {
         serverSelectionTimeoutMS: 7000,
-        connectTimeoutMS: 10000
+        connectTimeoutMS: 10000,
+        tlsAllowInvalidCertificates: true
       });
       const m = await cachedConnection;
       console.log('✅ Fallback connected to MongoDB Atlas successfully');

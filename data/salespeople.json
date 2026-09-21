@@ -1,10 +1,38 @@
 [
   {
-    "id": "sp-sales-op",
+    "_id": "6a97c081087383b9bb1598cb",
+    "email": "salesspaceandplaces@gmail.com",
+    "__v": 0,
+    "activeLeadsCount": 0,
+    "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Laiba%20Shahid",
+    "createdAt": "2026-09-02T06:21:53.159Z",
+    "id": "user-1788330112719-4lzag",
+    "name": "Laiba Shahid",
+    "role": "Sales Operations Manager",
+    "updatedAt": "2026-09-02T06:21:53.159Z"
+  },
+  {
+    "_id": "6a97c8df38f0ac771d91b0c4",
+    "id": "user-sales-op",
     "name": "Laiba Khan",
     "email": "salesspacesandplaces@gmail.com",
-    "role": "Sales Operations Manager",
     "avatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80",
-    "activeLeadsCount": 13
+    "role": "Sales Operations Manager",
+    "activeLeadsCount": 0,
+    "createdAt": "2026-09-02T06:57:35.252Z",
+    "updatedAt": "2026-09-19T06:17:26.891Z",
+    "__v": 0
+  },
+  {
+    "_id": "6aae82bee352aa0baa44cf4a",
+    "email": "admin@nexleads.io",
+    "__v": 0,
+    "activeLeadsCount": 0,
+    "avatar": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80",
+    "createdAt": "2026-09-19T12:40:29.728Z",
+    "id": "user-admin",
+    "name": "SuperAdmin",
+    "role": "SuperAdmin",
+    "updatedAt": "2026-09-21T05:32:56.042Z"
   }
 ]
