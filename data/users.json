@@ -1,0 +1,20 @@
+[
+  {
+    "id": "user-admin",
+    "name": "SuperAdmin",
+    "email": "admin@nexleads.io",
+    "password": "password123",
+    "role": "SuperAdmin",
+    "companyName": "NexLeads Agency",
+    "avatar": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "user-sales-op",
+    "name": "Laiba Khan",
+    "email": "salesspacesandplaces@gmail.com",
+    "password": "Laiba1234",
+    "role": "Sales Operations Manager",
+    "companyName": "Spaces & Places",
+    "avatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80"
+  }
+]

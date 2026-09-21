@@ -159,6 +159,24 @@ async function seedDatabaseIfEmpty() {
           await SalespersonModel.updateOne({ email: sp.email }, { name: 'Laiba Khan' });
         }
       }
+
+      // Automatically seed recent manual leads if database leads collection is empty
+      const leadCount = await LeadModel.countDocuments();
+      if (leadCount === 0) {
+        try {
+          const leadsFilePath = path.join(__dirname, '..', 'data', 'leads.json');
+          if (fs.existsSync(leadsFilePath)) {
+            const raw = fs.readFileSync(leadsFilePath, 'utf8');
+            const initialLeads = JSON.parse(raw);
+            if (Array.isArray(initialLeads) && initialLeads.length > 0) {
+              await LeadModel.insertMany(initialLeads.map(toPlainObject));
+              console.log(`✅ Auto-seeded ${initialLeads.length} leads into database from data/leads.json`);
+            }
+          }
+        } catch (seedErr) {
+          console.warn('Notice seeding leads from JSON:', seedErr.message);
+        }
+      }
     }
   } catch (err) {
     console.warn('Seeding notice:', err.message);
@@ -819,6 +837,44 @@ app.post('/api/sync', async (req, res) => {
   } catch (error) {
     console.error('Error syncing:', error.message);
     return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// GET export complete database backup as JSON file
+app.get('/api/admin/export-database', async (req, res) => {
+  try {
+    await connectDB();
+    let exportLeads = memoryLeads;
+    let exportActivities = memoryActivities;
+    let exportUsers = memoryUsers;
+    let exportSalespeople = memorySalespersons;
+
+    if (mongoose.connection.readyState === 1) {
+      exportLeads = (await LeadModel.find().lean()).map(toPlainObject);
+      exportActivities = (await ActivityModel.find().lean()).map(toPlainObject);
+      exportUsers = (await UserModel.find().lean()).map(toPlainObject);
+      exportSalespeople = (await SalespersonModel.find().lean()).map(toPlainObject);
+    }
+
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', 'attachment; filename="database-backup.json"');
+    return res.json({
+      version: '1.0',
+      exportedAt: new Date().toISOString(),
+      counts: {
+        leads: exportLeads.length,
+        activities: exportActivities.length,
+        users: exportUsers.length,
+        salespeople: exportSalespeople.length
+      },
+      leads: exportLeads,
+      activities: exportActivities,
+      users: exportUsers,
+      salespeople: exportSalespeople
+    });
+  } catch (error) {
+    console.error('Error exporting database:', error.message);
+    return res.status(500).json({ error: error.message });
   }
 });
 
