@@ -1,19 +1,20 @@
-# Enable Rewrite Engine
+DirectoryIndex dist/index.html index.html
+
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /
 
-  # Serve static files from dist/ if they exist
-  RewriteCond %{DOCUMENT_ROOT}/dist/$1 -f
-  RewriteRule ^(.*)$ dist/$1 [L]
+  # Serve root request from dist/index.html
+  RewriteRule ^$ dist/index.html [L]
 
-  # Pass API calls through
-  RewriteCond %{REQUEST_URI} ^/api/
+  # Serve assets directly from dist/assets
+  RewriteRule ^assets/(.*)$ dist/assets/$1 [L]
+
+  # Pass API calls through to Node.js backend
   RewriteRule ^api/(.*)$ - [L]
 
-  # SPA fallback to dist/index.html
+  # SPA fallback for all other routes
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
-  RewriteCond %{REQUEST_URI} !^/api/
   RewriteRule ^(.*)$ dist/index.html [L]
 </IfModule>
